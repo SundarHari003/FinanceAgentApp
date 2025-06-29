@@ -14,7 +14,7 @@ export const getallcustomer = createAsyncThunk(
     "getall/customerdata",
     async (data, { rejectWithValue }) => {
         try {
-            const response = await customFetch.get(`customers?page=${data.page}&limit=20&search=${data.search}&place_name=&district=&created_by=`);
+            const response = await customFetch.get(`customers?page=${data.page}&limit=20&search=${data.search}&place_name=&district=&created_by=&&status=${data.status || ''}`);
             console.log(response, "newa");
 
             return response;
@@ -41,8 +41,8 @@ export const getsingleCustomerdetails = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             const response = await customFetch.get(`customers/${id}`);
-            console.log(response,"getsingle");
-            
+            console.log(response, "getsingle");
+
             return response;
         } catch (error) {
             return rejectWithValue(error.message);
@@ -68,9 +68,11 @@ const customerSlice = createSlice({
     reducers: {
         clearsinglecustomerdetails: (state) => {
             state.getsinglecustomerdetailsData = {};
+            console.log(state.getsinglecustomerdetailsData, "clearsinglecustomerdetails");
+
         },
-        clearError:(state)=>{
-            state.customerError=null;
+        clearError: (state) => {
+            state.customerError = null;
         }
     },
     extraReducers: (builder) => {
@@ -107,17 +109,17 @@ const customerSlice = createSlice({
             .addCase(createCustomer.rejected, (state) => {
                 state.isloadingcustomer = false;
             })
-             .addCase(getsingleCustomerdetails.pending, (state) => {
+            .addCase(getsingleCustomerdetails.pending, (state) => {
                 state.isloadingcustomer = true;
-                state.getsinglecustomerdetailsData={};
+                state.getsinglecustomerdetailsData = {};
             })
-            .addCase(getsingleCustomerdetails.fulfilled, (state,action) => {
+            .addCase(getsingleCustomerdetails.fulfilled, (state, action) => {
                 state.isloadingcustomer = false;
-                state.getsinglecustomerdetailsData=action.payload;
+                state.getsinglecustomerdetailsData = action.payload;
             })
-            .addCase(getsingleCustomerdetails.rejected, (state,action) => {
+            .addCase(getsingleCustomerdetails.rejected, (state, action) => {
                 state.isloadingcustomer = false;
-                state.customerError=action.error;
+                state.getsinglecustomerdetailsData = {};
             })
             .addCase(updateCustomer.pending, (state) => {
                 state.isloadingcustomer = true;

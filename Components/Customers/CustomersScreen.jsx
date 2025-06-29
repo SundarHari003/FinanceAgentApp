@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -8,7 +8,7 @@ import Animated, {
   interpolate
 } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { getallcustomer, getsingleCustomerdetails } from '../../redux/Slices/customerSlice';
 import SkeletonBox from '../Common/SkeletonBox';
@@ -41,6 +41,7 @@ const CustomerCardSkeleton = ({ index }) => {
         <View className="flex-1 gap-y-2 px-3">
           <SkeletonBox width="70%" height={16} className="mb-2" />
           <SkeletonBox width="40%" height={12} />
+          <SkeletonBox width="40%" height={12} />
         </View>
         <SkeletonBox width={32} height={32} className="rounded-full" />
       </View>
@@ -49,7 +50,7 @@ const CustomerCardSkeleton = ({ index }) => {
 };
 
 // Updated Customer Card Component
-const CustomerCard = ({ name, custId, index, onPress }) => {
+const CustomerCard = memo(({ name, custId, city, isActive, index, onPress }) => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const offset = useSharedValue(50);
 
@@ -67,29 +68,79 @@ const CustomerCard = ({ name, custId, index, onPress }) => {
     <TouchableOpacity onPress={onPress}>
       <Animated.View
         style={animatedStyle}
-        className={`${isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'} backdrop-blur-sm p-4 rounded-2xl mb-3 shadow-sm`}
+        className={`${isDarkMode
+          ? 'bg-gray-800/90 border-gray-700' :
+          'bg-white/90 border-gray-200'
+          } backdrop-blur-sm p-4 rounded-2xl mb-3 shadow-sm border ${!isActive ? 'opacity-60' : ''
+          }`}
       >
         <View className="flex-row items-center">
           <View className="w-12 h-12 rounded-full bg-primary-100/10 items-center justify-center mr-4">
-            <Icon name="person-outline" size={24} color="#2ec4b6" />
+            <Icon
+              name="person-outline"
+              size={24}
+              color={isActive ? "#2ec4b6" : "#9ca3af"}
+            />
           </View>
+
+          {/* Customer Info */}
           <View className="flex-1">
-            <Text className={`text-base font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-              {name}
-            </Text>
+            <View className="flex-row items-center">
+              <Text className={`text-base font-semibold ${isDarkMode
+                ? isActive ? 'text-gray-100' : 'text-gray-400'
+                : isActive ? 'text-gray-900' : 'text-gray-500'
+                }`}>
+                {name}
+              </Text>
+              {!isActive && (
+                <View className="ml-2 px-2 py-1 rounded-full bg-red-100/80">
+                  <Text className="text-xs font-medium text-red-600">DISABLED</Text>
+                </View>
+              )}
+            </View>
+
             <View className="flex-row items-center mt-1">
               <Icon name="badge" size={14} color="#9ca3af" />
-              <Text className="text-sm text-gray-500 ml-1">ID: {custId}</Text>
+              <Text className={`text-sm ml-1 ${isActive ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                ID: {custId}
+              </Text>
             </View>
+
+            {city && (
+              <View className="flex-row items-center mt-1">
+                <Icon name="location-on" size={14} color="#9ca3af" />
+                <Text className={`text-sm ml-1 ${isActive ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                  {city}
+                </Text>
+              </View>
+            )}
           </View>
+
           <View className="bg-primary-100/10 p-2 rounded-full">
-            <Icon name="chevron-right" size={20} color="#2ec4b6" />
+            <Icon
+              name={"chevron-right"}
+              size={20}
+              color={isActive ? "#2ec4b6" : "#9ca3af"}
+            />
           </View>
         </View>
+
+        {/* Status Info for Disabled Customers */}
+        {!isActive && (
+          <View className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'
+            }`}>
+            <Text className={`text-xs text-center ${isDarkMode ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+              Customer temporarily disabled
+            </Text>
+          </View>
+        )}
       </Animated.View>
     </TouchableOpacity>
   );
-};
+});
 
 // Error State Component
 const ErrorState = ({ onRetry }) => {
@@ -117,7 +168,7 @@ const ErrorState = ({ onRetry }) => {
 };
 
 // Empty State Component
-const EmptyState = () => {
+const EmptyState = ({ onRetry }) => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const navigation = useNavigation();
 
@@ -133,10 +184,10 @@ const EmptyState = () => {
         Start building your customer base by adding your first customer.
       </Text>
       <TouchableOpacity
-        onPress={() => navigation.navigate('Createcustomer')}
+        onPress={() => onRetry}
         className="bg-primary-100 px-6 py-3 rounded-xl"
       >
-        <Text className="text-white font-medium">Add Customer</Text>
+        <Text className="text-white font-medium">Try Again</Text>
       </TouchableOpacity>
     </View>
   );
@@ -159,16 +210,16 @@ const CustomersScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  
+
   // Define dropdown options
-  const statusOptions = ['All', 'Active', 'Onboarding', 'Inactive'];
+  const statusOptions = ['All', 'Active', 'Inactive'];
   const sortOptions = ['Newest', 'Oldest'];
 
   const statusDropdownHeight = useSharedValue(0);
   const sortDropdownHeight = useSharedValue(0);
   const statusDropdownOpacity = useSharedValue(0);
   const sortDropdownOpacity = useSharedValue(0);
-  
+
   const fetchCustomer = async (pageNum = 1, isRefresh = false, isLoadMore = false) => {
     try {
       if (isLoadMore) {
@@ -176,7 +227,8 @@ const CustomersScreen = () => {
       }
       const queryparam = {
         "page": pageNum,
-        "search": searchQuery
+        "search": searchQuery,
+        "status": selectedStatus === 'All' ? '' : selectedStatus.toLowerCase(),
       };
       await dispatch(getallcustomer(queryparam));
 
@@ -196,12 +248,12 @@ const CustomersScreen = () => {
       }
     }
   };
-  
+
   // Initial load
   useEffect(() => {
     setCurrentPage(1);
     fetchCustomer(1)
-  }, [dispatch]);
+  }, [dispatch, searchQuery, selectedStatus]);
 
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
@@ -249,7 +301,7 @@ const CustomersScreen = () => {
     setShowSortDropdown(false);
 
     if (!isOpen) {
-      statusDropdownHeight.value = withSpring(180, {
+      statusDropdownHeight.value = withSpring(135, {
         damping: 15,
         stiffness: 100
       });
@@ -380,6 +432,18 @@ const CustomersScreen = () => {
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      if (customerError) {
+        handleRetry();
+      }
+      return () => {
+        scrollToTop();
+        console.log('cleanup if needed');
+      };
+    }, [])
+  );
+
   return (
     <View className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* Header with Glass Effect */}
@@ -395,7 +459,7 @@ const CustomersScreen = () => {
         </View>
         <Text className="text-white/70">Manage your customer database</Text>
         <View className={`${isDarkMode ? 'bg-gray-800/40' : 'bg-white/20'} px-4 py-2 my-4 rounded-xl flex-row items-center`}>
-          <Icon name="search" size={22} color="white" />
+          <Icon name="search" size={22} color={isDarkMode ? '#9ca3af' : 'rgba(255,255,255,0.6)'} />
           <TextInput
             placeholder="Search by ID or name..."
             value={searchQuery}
@@ -469,7 +533,7 @@ const CustomersScreen = () => {
           <Animated.View
             style={[statusDropdownStyle]}
             className={`absolute top-[110%] left-0 right-[52%] ${isDarkMode ? 'bg-gray-800' : 'bg-white'
-              } rounded-xl shadow-xl z-30 overflow-hidden`}
+              } rounded-xl shadow-xl z-30 border border-gray-200 overflow-hidden`}
           >
             {statusOptions.map((status) => (
               <TouchableOpacity
@@ -496,7 +560,7 @@ const CustomersScreen = () => {
           <Animated.View
             style={[sortDropdownStyle]}
             className={`absolute top-[110%] left-[52%] right-0 ${isDarkMode ? 'bg-gray-800' : 'bg-white'
-              } rounded-xl shadow-xl z-30 overflow-hidden`}
+              } rounded-xl shadow-xl z-30 border border-gray-200 overflow-hidden`}
           >
             {sortOptions.map((sort) => (
               <TouchableOpacity
@@ -535,7 +599,7 @@ const CustomersScreen = () => {
         ) : customerError ? (
           <ErrorState onRetry={handleRetry} />
         ) : CustomerByagent.length === 0 && !isloadingcustomer ? (
-          <EmptyState />
+          <EmptyState onRetry={handleRetry} />
         ) : (
           <View className='relative'>
             {/* Back to Top Button - Fixed positioning */}
@@ -561,7 +625,7 @@ const CustomersScreen = () => {
                 </Text>
               </TouchableOpacity>
             </Animated.View>
-            
+
             {/* FlatList with scroll handler */}
             <FlatList
               ref={flatListRef}
@@ -570,11 +634,13 @@ const CustomersScreen = () => {
               renderItem={({ item, index }) => (
                 <CustomerCard
                   name={item.name}
+                  city={item.city}
+                  isActive={item.is_active}
                   custId={item.id}
                   index={index}
                   onPress={() => {
                     dispatch(getsingleCustomerdetails(item.id));
-                    navigation.navigate("Customerdetails");
+                    navigation.navigate("Customerdetails", { id: item.id });
                   }}
                 />
               )}

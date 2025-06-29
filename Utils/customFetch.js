@@ -49,8 +49,9 @@ const request = async (method, endpoint, body = null, customHeaders = {}, retry 
         headers,
         body: body ? JSON.stringify(body) : undefined,
     });
+    console.log(res, "res");
     const data = await res.json();
-    console.log(data);
+    console.log(res, "res",data);
 
     // Check response before parsing
     if (data.status_code === 401 && !retry) {

@@ -8,7 +8,7 @@ import { singleLoanRepaymentsAPI } from '../../../redux/Slices/loanSlice';
 const HistoryContent = () => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const { getsinglecustomerdetailsData } = useSelector((state) => state.customer);
-  const { SingleLoanrepaymentsData, loanerror, isLoadingLoan } = useSelector((state) => state.loanstore);
+  const { SingleLoanrepaymentsData, newError, isLoadingLoan } = useSelector((state) => state.loanstore);
   const dispatch = useDispatch();
   const [selectedLoanId, setSelectedLoanId] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('All');
@@ -17,9 +17,46 @@ const HistoryContent = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const statusOptions = ['All', 'Paid', 'Pending', 'Overdue'];
 
-  // Primary colors
-  const primaryColor = '#1a9c94';
-  const primaryLightColor = '#2ec4b6';
+  // Centralized theme object
+  const theme = {
+    light: {
+      background: 'bg-primary-50',
+      card: 'bg-white border border-primary-200 shadow-lg',
+      dropdown: 'bg-white border border-primary-200 shadow-lg',
+      paymentCard: 'bg-white border border-primary-100 shadow-md',
+      primaryButton: 'bg-primary-100 border border-primary-200',
+      text: 'text-slate-900',
+      subtext: 'text-slate-600',
+      border: 'border-primary-200',
+      icon: '#1a9c94',
+      iconLight: '#2ec4b6',
+      status: {
+        paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        pending: 'bg-amber-50 text-amber-700 border-amber-200',
+        overdue: 'bg-rose-50 text-rose-700 border-rose-200',
+        default: 'bg-slate-100 text-slate-600 border-slate-300',
+      },
+    },
+    dark: {
+      background: 'bg-slate-900',
+      card: 'bg-slate-800 border border-slate-700',
+      dropdown: 'bg-slate-800 border border-slate-600 shadow-xl',
+      paymentCard: 'bg-slate-700 border border-slate-600',
+      primaryButton: 'bg-teal-700 border border-teal-600',
+      text: 'text-white',
+      subtext: 'text-slate-400',
+      border: 'border-slate-700',
+      icon: '#2ec4b6',
+      iconLight: '#1a9c94',
+      status: {
+        paid: 'bg-emerald-900/40 text-emerald-300 border-emerald-800',
+        pending: 'bg-amber-900/40 text-amber-300 border-amber-800',
+        overdue: 'bg-rose-900/40 text-rose-300 border-rose-800',
+        default: 'bg-slate-700/40 text-slate-300 border-slate-600',
+      },
+    },
+  };
+  const currentTheme = isDarkMode ? theme.dark : theme.light;
 
   const filteredPayments = selectedStatus === 'All'
     ? SingleLoanrepaymentsData?.data || []
@@ -52,21 +89,13 @@ const HistoryContent = () => {
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'paid':
-        return isDarkMode
-          ? 'bg-emerald-900/40 text-emerald-300 border-emerald-800'
-          : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return currentTheme.status.paid;
       case 'pending':
-        return isDarkMode
-          ? 'bg-amber-900/40 text-amber-300 border-amber-800'
-          : 'bg-amber-50 text-amber-700 border-amber-200';
+        return currentTheme.status.pending;
       case 'overdue':
-        return isDarkMode
-          ? 'bg-rose-900/40 text-rose-300 border-rose-800'
-          : 'bg-rose-50 text-rose-700 border-rose-200';
+        return currentTheme.status.overdue;
       default:
-        return isDarkMode
-          ? 'bg-slate-700/40 text-slate-300 border-slate-600'
-          : 'bg-slate-100 text-slate-600 border-slate-300';
+        return currentTheme.status.default;
     }
   };
 
@@ -80,40 +109,30 @@ const HistoryContent = () => {
   };
 
   const getContainerStyles = () => {
-    return isDarkMode
-      ? 'bg-slate-900'
-      : 'bg-primary-50';
+    return currentTheme.background;
   };
 
   const getCardStyles = () => {
-    return isDarkMode
-      ? 'bg-slate-800 border border-slate-700'
-      : 'bg-white border border-primary-200 shadow-lg';
+    return currentTheme.card;
   };
 
   const getDropdownStyles = () => {
-    return isDarkMode
-      ? 'bg-slate-800 border border-slate-600 shadow-xl'
-      : 'bg-white border border-primary-200 shadow-lg';
+    return currentTheme.dropdown;
   };
 
   const getPaymentCardStyles = () => {
-    return isDarkMode
-      ? 'bg-slate-700 border border-slate-600'
-      : 'bg-white border border-primary-100 shadow-md';
+    return currentTheme.paymentCard;
   };
 
   const getPrimaryButtonStyles = () => {
-    return isDarkMode
-      ? 'bg-teal-700 border border-teal-600'
-      : 'bg-primary-100 border border-primary-200';
+    return currentTheme.primaryButton;
   };
 
   // No loans available state
   if (loans.length === 0) {
     return (
       <ScrollView
-        className={`flex-1  ${isDarkMode ? 'bg-slate-900' : 'bg-primary-50'}`}
+        className={`flex-1 ${currentTheme.background}`}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View
@@ -122,17 +141,17 @@ const HistoryContent = () => {
         >
           <View className={`${getCardStyles()} rounded-2xl p-8 mx-2 my-4`}>
             <View className="items-center py-16">
-              <View className={`w-32 h-32 rounded-full items-center justify-center mb-6 ${isDarkMode ? 'bg-slate-700' : 'bg-primary-100/40'}`}>
+              <View className={`w-32 h-32 rounded-full items-center justify-center mb-6 ${currentTheme.background}`}>
                 <Icon
                   name="wallet-outline"
                   size={64}
-                  color={isDarkMode ? '#64748b' : primaryColor}
+                  color={currentTheme.icon}
                 />
               </View>
-              <Text className={`text-2xl font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'} mb-4 text-center`}>
+              <Text className={`text-2xl font-bold ${currentTheme.text} mb-4 text-center`}>
                 No Loans Available
               </Text>
-              <Text className={`text-base ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} text-center px-8 leading-6`}>
+              <Text className={`text-base ${currentTheme.subtext} text-center px-8 leading-6`}>
                 This customer doesn't have any loans yet. Once loans are created, their payment history will appear here.
               </Text>
             </View>
@@ -149,23 +168,23 @@ const HistoryContent = () => {
     >
       <Animated.View
         style={{ opacity: fadeAnim }}
-        className="flex-1 px-4 pb-7"
+        className="flex-1 px-2 pb-7"
       >
         <View className={`${getCardStyles()} rounded-2xl p-6 mx-2`}>
           {/* Header */}
           <View className="flex-row items-center mb-8">
-            <View className={`w-14 h-14 rounded-2xl items-center justify-center mr-4 ${isDarkMode ? 'bg-slate-700' : 'bg-primary-100/30'}`}>
+            <View className={`w-14 h-14 rounded-2xl items-center justify-center mr-4 ${currentTheme.background}`}>
               <Icon
                 name="time"
                 size={28}
-                color={isDarkMode ? primaryLightColor : primaryColor}
+                color={currentTheme.iconLight}
               />
             </View>
             <View>
-              <Text className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              <Text className={`text-2xl font-bold ${currentTheme.text}`}>
                 Payment History
               </Text>
-              <Text className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              <Text className={`text-sm ${currentTheme.subtext}`}>
                 Track all loan payments and status
               </Text>
             </View>
@@ -173,7 +192,7 @@ const HistoryContent = () => {
 
           {/* Loan Selection */}
           <View className="mb-6 relative z-50">
-            <Text className={`text-sm font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} mb-3 uppercase tracking-wide`}>
+            <Text className={`text-sm font-semibold ${currentTheme.subtext} mb-3 uppercase tracking-wide`}>
               Select Loan
             </Text>
 
@@ -183,29 +202,22 @@ const HistoryContent = () => {
                 setShowLoanFilter(!showLoanFilter);
                 setShowStatusFilter(false);
               }}
-              className={`flex-row items-center justify-between p-4 rounded-xl border-2 ${isDarkMode
-                ? showLoanFilter
-                  ? 'border-teal-500 bg-slate-700'
-                  : 'border-slate-600 bg-slate-700'
-                : showLoanFilter
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-primary-200 bg-white'
-                }`}
+              className={`flex-row items-center justify-between p-4 rounded-xl border-2 ${currentTheme.background} ${showLoanFilter ? 'border-teal-500' : 'border-slate-600'}`}
             >
               <View className="flex-row items-center">
                 <Icon
                   name="document-text"
                   size={20}
-                  color={isDarkMode ? primaryColor : primaryLightColor}
+                  color={currentTheme.icon}
                 />
-                <Text className={`ml-3 ${isDarkMode ? 'text-primary-100/60' : 'text-primary-100/70'} text-base font-medium`}>
+                <Text className={`ml-3 ${currentTheme.text} text-base font-medium`}>
                   {selectedLoanId ? `Loan #${selectedLoanId}` : 'Choose a loan'}
                 </Text>
               </View>
               <Icon
                 name={showLoanFilter ? "chevron-up" : "chevron-down"}
                 size={20}
-                color={isDarkMode ? primaryColor : primaryLightColor}
+                color={currentTheme.icon}
               />
             </TouchableOpacity>
 
@@ -227,16 +239,16 @@ const HistoryContent = () => {
                         setShowStatusFilter(false);
                       }}
                       className={`p-4 flex-row items-center ${index !== loans.length - 1
-                        ? isDarkMode ? 'border-b border-slate-700' : 'border-b border-primary-100'
+                        ? currentTheme.background
                         : ''
                         } ${selectedLoanId === loan.id
-                          ? isDarkMode ? 'bg-teal-900/30' : 'bg-primary-100'
-                          : isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-primary-50'
+                          ? currentTheme.background
+                          : currentTheme.background
                         }`}
                     >
                       <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${selectedLoanId === loan.id
                         ? 'border-teal-500 bg-teal-500'
-                        : isDarkMode ? 'border-slate-500' : 'border-primary-300'
+                        : currentTheme.background
                         }`}>
                         {selectedLoanId === loan.id && (
                           <View className="w-2 h-2 rounded-full bg-white" />
@@ -244,14 +256,14 @@ const HistoryContent = () => {
                       </View>
                       <View className="flex-1">
                         <Text className={`text-base font-medium ${selectedLoanId === loan.id
-                          ? isDarkMode ? 'text-white' : 'text-white'
-                          : isDarkMode ? 'text-slate-200' : 'text-slate-700'
+                          ? currentTheme.text
+                          : currentTheme.text
                           }`}>
                           Loan #{loan.id}
                         </Text>
                         <Text className={`text-sm ${selectedLoanId === loan.id
                           ? 'text-teal-200'
-                          : isDarkMode ? 'text-slate-200' : 'text-slate-700'
+                          : currentTheme.text
                           }`}>
                           Amount: ₹{loan.total_repayment_amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || 'N/A'}
                         </Text>
@@ -266,7 +278,7 @@ const HistoryContent = () => {
           {/* Status Selection */}
           {selectedLoanId && (
             <View className="mb-6 relative z-40">
-              <Text className={`text-sm font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} mb-3 uppercase tracking-wide`}>
+              <Text className={`text-sm font-semibold ${currentTheme.subtext} mb-3 uppercase tracking-wide`}>
                 Filter by Status
               </Text>
 
@@ -276,29 +288,22 @@ const HistoryContent = () => {
                   setShowStatusFilter(!showStatusFilter);
                   setShowLoanFilter(false);
                 }}
-                className={`flex-row items-center justify-between p-4 rounded-xl border-2 ${isDarkMode
-                  ? showStatusFilter
-                    ? 'border-teal-500 bg-slate-700'
-                    : 'border-slate-600 bg-slate-700'
-                  : showStatusFilter
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-primary-200 bg-white'
-                  }`}
+                className={`flex-row items-center justify-between p-4 rounded-xl border-2 ${currentTheme.background} ${showStatusFilter ? 'border-teal-500' : 'border-slate-600'}`}
               >
                 <View className="flex-row items-center">
                   <Icon
                     name="filter"
                     size={20}
-                    color={isDarkMode ? '#94a3b8' : '#64748b'}
+                    color={currentTheme.subtext}
                   />
-                  <Text className={`ml-3 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'} text-base font-medium`}>
+                  <Text className={`ml-3 ${currentTheme.text} text-base font-medium`}>
                     {selectedStatus || 'All statuses'}
                   </Text>
                 </View>
                 <Icon
                   name={showStatusFilter ? "chevron-up" : "chevron-down"}
                   size={20}
-                  color={isDarkMode ? '#94a3b8' : '#64748b'}
+                  color={currentTheme.subtext}
                 />
               </TouchableOpacity>
 
@@ -313,24 +318,24 @@ const HistoryContent = () => {
                         setShowStatusFilter(false);
                       }}
                       className={`p-4 flex-row items-center ${index !== statusOptions.length - 1
-                        ? isDarkMode ? 'border-b border-slate-700' : 'border-b border-primary-100'
+                        ? currentTheme.background
                         : ''
                         } ${selectedStatus === status
-                          ? isDarkMode ? 'bg-teal-900/30' : 'bg-primary-100'
-                          : isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-primary-50'
+                          ? currentTheme.background
+                          : currentTheme.background
                         }`}
                     >
                       <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${selectedStatus === status
                         ? 'border-teal-500 bg-teal-500'
-                        : isDarkMode ? 'border-slate-500' : 'border-primary-300'
+                        : currentTheme.background
                         }`}>
                         {selectedStatus === status && (
                           <View className="w-2 h-2 rounded-full bg-white" />
                         )}
                       </View>
                       <Text className={`text-base font-medium ${selectedStatus === status
-                        ? isDarkMode ? 'text-teal-300' : 'text-primary-700'
-                        : isDarkMode ? 'text-slate-200' : 'text-slate-700'
+                        ? currentTheme.text
+                        : currentTheme.text
                         }`}>
                         {status}
                       </Text>
@@ -342,18 +347,18 @@ const HistoryContent = () => {
           )}
 
           {/* Error State */}
-          {loanerror && selectedLoanId && (
-            <View className={`mb-6 p-6 rounded-xl ${isDarkMode ? 'bg-red-900/20 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
+          {newError && selectedLoanId && (
+            <View className={`mb-6 p-6 rounded-xl ${currentTheme.background}`}>
               <View className="items-center">
                 <Icon
                   name="alert-circle"
                   size={48}
-                  color={isDarkMode ? '#f87171' : '#dc2626'}
+                  color={currentTheme.icon}
                 />
-                <Text className={`text-lg font-semibold mt-3 mb-2 ${isDarkMode ? 'text-red-300' : 'text-red-700'}`}>
+                <Text className={`text-lg font-semibold mt-3 mb-2 ${currentTheme.text}`}>
                   Failed to Load Payment History
                 </Text>
-                <Text className={`text-sm text-center mb-4 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                <Text className={`text-sm text-center mb-4 ${currentTheme.subtext}`}>
                   Unable to fetch payment data. Please check your connection and try again.
                 </Text>
                 <TouchableOpacity
@@ -374,14 +379,14 @@ const HistoryContent = () => {
           )}
 
           {/* Payment List */}
-          {selectedLoanId && selectedStatus && !loanerror && (
+          {selectedLoanId && selectedStatus && !newError && (
             <View className="mt-6">
               <View className="flex-row items-center justify-between mb-4">
-                <Text className={`text-sm font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} uppercase tracking-wide`}>
+                <Text className={`text-sm font-semibold ${currentTheme.subtext} uppercase tracking-wide`}>
                   Payment Records
                 </Text>
-                <View className={`px-3 py-1 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-primary-100'}`}>
-                  <Text className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-primary-50'}`}>
+                <View className={`px-3 py-1 rounded-full ${currentTheme.background}`}>
+                  <Text className={`text-xs font-bold ${currentTheme.text}`}>
                     {filteredPayments.length} records
                   </Text>
                 </View>
@@ -389,8 +394,8 @@ const HistoryContent = () => {
 
               {isLoadingLoan ? (
                 <View className="py-16 items-center">
-                  <ActivityIndicator size="large" color={primaryColor} />
-                  <Text className={`mt-4 text-base ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <ActivityIndicator size="large" color={currentTheme.icon} />
+                  <Text className={`mt-4 text-base ${currentTheme.subtext}`}>
                     Loading payment history...
                   </Text>
                 </View>
@@ -407,9 +412,9 @@ const HistoryContent = () => {
                             <Icon
                               name="calendar-outline"
                               size={16}
-                              color={isDarkMode ? '#94a3b8' : '#64748b'}
+                              color={currentTheme.subtext}
                             />
-                            <Text className={`ml-2 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <Text className={`ml-2 text-sm ${currentTheme.subtext}`}>
                               Due: {new Date(payment.due_date).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'short',
@@ -417,10 +422,10 @@ const HistoryContent = () => {
                               })}
                             </Text>
                           </View>
-                          <Text className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'} mb-1`}>
+                          <Text className={`text-2xl font-bold ${currentTheme.text} mb-1`}>
                             ₹{payment.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </Text>
-                          <Text className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          <Text className={`text-sm ${currentTheme.subtext}`}>
                             Paid: ₹{payment.amount_paid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </Text>
                         </View>
@@ -430,32 +435,32 @@ const HistoryContent = () => {
                             size={14}
                             color={payment.status.toLowerCase() === 'paid' ? '#065f46' : payment.status.toLowerCase() === 'pending' ? '#92400e' : '#991b1b'}
                           />
-                          <Text className={` ${payment.status.toLowerCase() === 'paid' ? isDarkMode ? 'text-green-300' : 'text-green-700' : payment.status.toLowerCase() === 'pending' ? isDarkMode ? 'text-amber-300' : 'text-amber-700' : isDarkMode ? 'text-red-300' : 'text-red-700'} text-xs font-bold ml-1`}>
+                          <Text className={` ${payment.status.toLowerCase() === 'paid' ? currentTheme.text : payment.status.toLowerCase() === 'pending' ? currentTheme.text : currentTheme.text} text-xs font-bold ml-1`}>
                             {payment.status.toUpperCase()}
                           </Text>
                         </View>
                       </View>
 
-                      <View className={`pt-3 border-t ${isDarkMode ? 'border-slate-600' : 'border-primary-100'}`}>
+                      <View className={`pt-3 border-t ${currentTheme.background}`}>
                         <View className="flex-row items-center justify-between">
                           <View className="flex-row items-center">
                             <Icon
                               name="receipt-outline"
                               size={16}
-                              color={isDarkMode ? '#94a3b8' : '#64748b'}
+                              color={currentTheme.subtext}
                             />
-                            <Text className={`text-sm ml-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <Text className={`text-sm ml-2 ${currentTheme.subtext}`}>
                               ID: {payment.id}
                             </Text>
                           </View>
                           {payment.status.toLowerCase() === 'overdue' && (
-                            <Text className={`text-xs font-semibold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                            <Text className={`text-xs font-semibold ${currentTheme.text}`}>
                               OVERDUE
                             </Text>
                           )}
                         </View>
                         {payment.notes && (
-                          <Text className={`text-sm mt-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} italic`}>
+                          <Text className={`text-sm mt-2 ${currentTheme.subtext} italic`}>
                             "{payment.notes}"
                           </Text>
                         )}
@@ -464,17 +469,14 @@ const HistoryContent = () => {
 
                     {payment.status.toLowerCase() === 'pending' && (
                       <TouchableOpacity
-                        className={`py-4 items-center flex-row justify-center ${isDarkMode
-                          ? 'bg-slate-600 border-t border-slate-600'
-                          : 'bg-primary-50 border-t border-primary-100'
-                          }`}
+                        className={`py-4 items-center flex-row justify-center ${currentTheme.background}`}
                       >
                         <Icon
                           name="card"
                           size={18}
-                          color={isDarkMode ? primaryLightColor : primaryColor}
+                          color={currentTheme.icon}
                         />
-                        <Text className={`ml-2 font-semibold text-base`} style={{ color: isDarkMode ? primaryLightColor : primaryColor }}>
+                        <Text className={`ml-2 font-semibold text-base`} style={{ color: currentTheme.icon }}>
                           Process Payment
                         </Text>
                       </TouchableOpacity>
@@ -483,17 +485,17 @@ const HistoryContent = () => {
                 ))
               ) : (
                 <View className="py-16 items-center">
-                  <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${isDarkMode ? 'bg-slate-700' : 'bg-primary-100'}`}>
+                  <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${currentTheme.background}`}>
                     <Icon
                       name="receipt-outline"
                       size={40}
-                      color={isDarkMode ? '#64748b' : primaryColor}
+                      color={currentTheme.subtext}
                     />
                   </View>
-                  <Text className={`text-xl font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'} mb-3`}>
+                  <Text className={`text-xl font-semibold ${currentTheme.text} mb-3`}>
                     No {selectedStatus !== 'All' ? selectedStatus.toLowerCase() : ''} payments found
                   </Text>
-                  <Text className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-center px-8`}>
+                  <Text className={`text-sm ${currentTheme.subtext} text-center px-8`}>
                     {selectedStatus !== 'All'
                       ? `No ${selectedStatus.toLowerCase()} payment records found for this loan`
                       : 'No payment records found for this loan'
@@ -507,17 +509,17 @@ const HistoryContent = () => {
           {/* Initial State */}
           {!selectedLoanId && (
             <View className="py-16 items-center">
-              <View className={`w-28 h-28 rounded-full items-center justify-center mb-6 ${isDarkMode ? 'bg-slate-700' : 'bg-primary-100/40'}`}>
+              <View className={`w-28 h-28 rounded-full items-center justify-center mb-6 ${currentTheme.background}`}>
                 <Icon
                   name="document-text-outline"
                   size={48}
-                  color={isDarkMode ? '#64748b' : primaryColor}
+                  color={currentTheme.subtext}
                 />
               </View>
-              <Text className={`text-xl font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} mb-3`}>
+              <Text className={`text-xl font-semibold ${currentTheme.text} mb-3`}>
                 Ready to View History
               </Text>
-              <Text className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-center px-8 leading-6`}>
+              <Text className={`text-sm ${currentTheme.subtext} text-center px-8 leading-6`}>
                 Select a loan from the dropdown above to view detailed payment history and track transaction status
               </Text>
             </View>

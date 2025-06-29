@@ -22,14 +22,14 @@ const ProfileContent = () => {
         email: singleData?.email,
         alternateMobile: singleData?.alternate_mobile_number,
         gender: singleData?.gender,
-        dateOfBirth: moment(singleData?.date_of_birth).format("DD-MM-YYYY"),
+        dateOfBirth: singleData?.date_of_birth,
         addressLine1: singleData?.address_line1,
         district: singleData?.district,
         state: singleData?.state,
         city: singleData?.city,
         pincode: singleData?.pincode,
         placeName: singleData?.place_name,
-        customerSince: moment(singleData?.created_at).format("DD-MM-YYYY"),
+        customerSince: singleData?.created_at,
     })
     // Format date helper
     const formatDate = (dateString) => {

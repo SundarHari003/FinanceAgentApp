@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -21,6 +22,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import { useDispatch, useSelector } from 'react-redux';
@@ -35,8 +37,6 @@ const EditCustomerScreen = () => {
   const { showToast } = useToast();
   const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const [showIdTypeDropdown, setShowIdTypeDropdown] = useState(false);
   const singleDate = getsinglecustomerdetailsData?.data;
@@ -120,9 +120,9 @@ const EditCustomerScreen = () => {
     // else if (!validatePhone(customerData.phone_number)) newErrors.phone_number = 'Please enter a valid 10-digit phone number';
     if (!customerData.email.trim()) newErrors.email = 'Email is required';
     else if (!validateEmail(customerData.email)) newErrors.email = 'Please enter a valid email address';
-    if (customerData.alternate_mobile_number && !validatePhone(customerData.alternate_mobile_number)) {
-      newErrors.alternate_mobile_number = 'Please enter a valid 10-digit phone number';
-    }
+    // if (customerData.alternate_mobile_number && !validatePhone(customerData.alternate_mobile_number)) {
+    //   newErrors.alternate_mobile_number = 'Please enter a valid 10-digit phone number';
+    // }
     if (!customerData.address_line1.trim()) newErrors.address_line1 = 'Address is required';
     if (!customerData.district.trim()) newErrors.district = 'District is required';
     if (!customerData.state.trim()) newErrors.state = 'State is required';
@@ -169,23 +169,9 @@ const EditCustomerScreen = () => {
     }
   }, [isEditing, nonEditableFields]);
 
-  // Save handler
-  const handleSave = useCallback(() => {
-    if (validateForm()) {
-      showSheet()
-      setShowOverlay(true);
-      setShowAlert(true);
-    } else {
-      showToast({
-        message: 'Please fill all mandatory fields correctly',
-        type: 'error',
-        duration: 3000,
-        position: 'top',
-      });
-    }
-  }, [validateForm]);
-
   // Confirm save handler
+  const [isSaving, setIsSaving] = useState(false);
+  const buttonWidth = useSharedValue('48%'); // Start at 48% width
   const handleConfirmSave = useCallback(() => {
     const payload = {
       ...customerData,
@@ -193,13 +179,13 @@ const EditCustomerScreen = () => {
       alternate_mobile_number: customerData.alternate_mobile_number
         ? customerData.alternate_mobile_number.replace(/^\+91/, '')
         : '',
+      date_of_birth: customerData.date_of_birth
+        ? customerData.date_of_birth.split('T')[0]
+        : '',
     };
-
-    setShowOverlay(false);
-    setShowAlert(false);
-    setIsEditing(false);
-
     dispatch(updateCustomer(payload)).then((response) => {
+      console.log(response);
+      
       if (response?.payload?.success && response?.payload?.status_code === 200) {
         dispatch(getsingleCustomerdetails(customerData.id));
         navigation.goBack();
@@ -209,17 +195,38 @@ const EditCustomerScreen = () => {
           duration: 3000,
           position: 'top',
         });
+        setIsEditing(false);
+        setIsSaving(false);
+        buttonWidth.value = withTiming('48%', { duration: 300 });
       } else {
         setIsEditing(true); // Re-enable editing if the save fails
+        setIsSaving(false);
+        buttonWidth.value = withTiming('48%', { duration: 300 });
         showToast({
-          message: response?.payload?.message || 'Failed to update customer',
+          message: response?.error?.message || response?.payload || 'Failed to update customer',
           type: 'error',
           duration: 3000,
           position: 'top',
         });
       }
     });
-  }, [customerData, dispatch, navigation, showToast]);
+  }, [customerData, dispatch, navigation, showToast, buttonWidth]);
+
+  // Save handler
+  const handleSave = useCallback(() => {
+    if (validateForm()) {
+      setIsSaving(true);
+      buttonWidth.value = withTiming('100%', { duration: 300 }); // Animate to full width
+      handleConfirmSave();
+    } else {
+      showToast({
+        message: 'Please fill all mandatory fields correctly',
+        type: 'error',
+        duration: 3000,
+        position: 'top',
+      });
+    }
+  }, [validateForm, handleConfirmSave, showToast, buttonWidth]);
 
   // Format date helper
   const formatDate = useCallback((dateString) => {
@@ -256,37 +263,6 @@ const EditCustomerScreen = () => {
       </View>
     );
   }, []);
-
-  // Bottom sheet animation hook
-  const useBottomSheetAnimation = () => {
-    const translateY = useSharedValue(1000);
-
-    const animatedStyles = useAnimatedStyle(() => ({
-      transform: [{ translateY: translateY.value }],
-    }));
-
-    const showSheet = () => {
-      translateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      });
-    };
-
-    const hideSheet = (callback) => {
-      translateY.value = withSpring(1000, {
-        damping: 20,
-        stiffness: 120,
-        mass: 0.8,
-      }, () => {
-        if (callback) runOnJS(callback)();
-      });
-    };
-
-    return { animatedStyles, showSheet, hideSheet };
-  };
-
-  const { animatedStyles, showSheet, hideSheet } = useBottomSheetAnimation();
 
   // Memoized dropdown component
   const DropdownModal = useCallback(
@@ -370,6 +346,11 @@ const EditCustomerScreen = () => {
     () => identificationOptions.find((id) => id.value === customerData.identification_type)?.label || 'Select ID Type',
     [identificationOptions, customerData.identification_type]
   );
+
+  // Animated style for Save Changes button
+  const saveButtonAnimatedStyle = useAnimatedStyle(() => ({
+    width: buttonWidth.value,
+  }));
 
   return (
     <SafeAreaView className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
@@ -605,32 +586,53 @@ const EditCustomerScreen = () => {
 
           {/* Action Buttons */}
           {isEditing && (
-            <Animated.View entering={FadeIn} exiting={FadeOut} className="p-6 shadow-sm">
-              <View className="flex-row justify-between space-x-4">
-                <TouchableOpacity
-                  onPress={handleSave}
-                  disabled={!isFormValid || isloadingcustomer}
-                  className={`flex-1 py-4 rounded-2xl flex-row items-center justify-center ${isFormValid && !isloadingcustomer
-                    ? 'bg-teal-600'
-                    : isDarkMode
-                      ? 'bg-gray-700'
-                      : 'bg-gray-300'
-                    }`}
-                >
-                  <Icon
-                    name="checkmark-outline"
-                    size={20}
-                    color={isFormValid && !isloadingcustomer ? 'white' : isDarkMode ? '#6b7280' : '#9ca3af'}
-                  />
-                  <Text
-                    className={`font-semibold ml-2 ${isFormValid && !isloadingcustomer ? 'text-white' : isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`}
+            <View className="p-6 shadow-sm">
+              <View className="flex-row justify-between gap-x-4">
+                {!isSaving && (
+                  <TouchableOpacity
+                    onPress={() => setIsEditing(false)}
+                    style={{ width: '48%' }}
+                    className="py-4 rounded-2xl flex-row items-center justify-center bg-gray-400"
                   >
-                    Save Changes
-                  </Text>
-                </TouchableOpacity>
+                    <Icon name="close-outline" size={20} color="white" />
+                    <Text className="font-semibold ml-2 text-white">Discard</Text>
+                  </TouchableOpacity>
+                )}
+                <Animated.View style={[saveButtonAnimatedStyle, { alignSelf: 'stretch' }]}> 
+                  <TouchableOpacity
+                    onPress={handleSave}
+                    disabled={!isFormValid || isloadingcustomer || isSaving}
+                    className={`py-4 rounded-2xl flex-row items-center justify-center ${
+                      isFormValid ? 'bg-teal-600' : isDarkMode ? 'bg-gray-700' : 'bg-gray-300'
+                    }`}
+                    style={{ width: '100%', justifyContent: 'center', alignItems: 'center' }}
+                  >
+                    {isloadingcustomer ? (
+                      <ActivityIndicator color={isDarkMode ? '#fff' : '#14b8a6'} />
+                    ) : (
+                      <>
+                        <Icon
+                          name="checkmark-outline"
+                          size={20}
+                          color={isFormValid && !isloadingcustomer && !isSaving ? 'white' : isDarkMode ? '#6b7280' : '#9ca3af'}
+                        />
+                        <Text
+                          className={`font-semibold ml-2 ${
+                            isFormValid && !isloadingcustomer && !isSaving
+                              ? 'text-white'
+                              : isDarkMode
+                              ? 'text-gray-400'
+                              : 'text-gray-500'
+                          }`}
+                        >
+                          Save Changes
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </Animated.View>
               </View>
-            </Animated.View>
+            </View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -655,76 +657,8 @@ const EditCustomerScreen = () => {
         title="Select ID Type"
       />
 
-      {/* Save Confirmation Bottom Sheet */}
-      {showAlert && (
-        <View className="absolute inset-0" style={{ elevation: 1000, zIndex: 1000 }}>
-
-          {showOverlay && (
-            <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} className="absolute inset-0 bg-black/50">
-              <TouchableOpacity
-                className="flex-1"
-                activeOpacity={1}
-                onPress={() => {
-                  hideSheet()
-                  setShowAlert(false);
-                  setShowOverlay(false);
-                }}
-              />
-            </Animated.View>
-          )}
-
-          <Animated.View
-            style={[styles.modalContent(isDarkMode), animatedStyles]}
-            className={`absolute bottom-0 w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-3xl`}
-          >
-            <View className="p-6">
-              <View className="items-center mb-6">
-                <View className="w-12 h-1 bg-gray-200 rounded-full" />
-              </View>
-              <View className="items-center mb-6">
-                <Icon name="alert-circle-outline" size={40} color="#1a9c94" />
-                <Text className={`text-xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} mt-4`}>
-                  Save Changes?
-                </Text>
-                <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-center mt-2 px-6`}>
-                  Are you sure you want to save these changes?
-                </Text>
-              </View>
-              <View className="flex-row gap-3">
-                <TouchableOpacity
-                  onPress={() => {
-                    hideSheet(() => {
-                      setShowAlert(false);
-                      setShowOverlay(false);
-                    });
-                  }}
-                  className={`flex-1 border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-4 rounded-2xl`}
-                >
-                  <Text className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} font-medium text-center`}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleConfirmSave} className="flex-1 bg-teal-500 p-4 rounded-2xl">
-                  <Text className="text-white font-medium text-center">Confirm</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Animated.View>
-        </View>
-      )}
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  modalContent: (isDarkMode) => ({
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: isDarkMode ? 0.45 : 0.25,
-    shadowRadius: 4,
-    elevation: 1000,
-    zIndex: 1000,
-    backgroundColor: isDarkMode ? '#1f2937' : 'white',
-    minHeight: 250,
-  }),
-});
 
 export default EditCustomerScreen;

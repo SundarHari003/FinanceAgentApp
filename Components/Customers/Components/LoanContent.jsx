@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { singleLoanRepaymentsAPI } from '../../../redux/Slices/loanSlice';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;
 
 const LoanContent = () => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
@@ -29,8 +30,8 @@ const LoanContent = () => {
 
   // Bottom Sheet State
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
-  const [sheetType, setSheetType] = useState(''); // 'pending' or 'paid'
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const [sheetType, setSheetType] = useState(''); // 'pending' or 'paid' or 'partial'
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
   // Separate active and past loans
@@ -38,11 +39,13 @@ const LoanContent = () => {
   const pastLoans = singleData?.loans?.filter(loan => loan.status !== 'ACTIVE') || [];
   const paidterms = SingleLoanrepaymentsData?.data?.filter((term) => term.status === 'PAID') || [];
   const pendingterms = SingleLoanrepaymentsData?.data?.filter((term) => term.status === 'PENDING') || [];
+  const partialterms = SingleLoanrepaymentsData?.data?.filter((term) => term.status === 'PARTIAL') || [];
 
   // Debug logs to check data
   console.log('SingleLoanrepaymentsData:', SingleLoanrepaymentsData);
   console.log('Paid terms:', paidterms);
   console.log('Pending terms:', pendingterms);
+  console.log('Partial terms:', partialterms);
   console.log('Sheet type:', sheetType);
 
   const formatDate = (dateString) => {
@@ -86,7 +89,7 @@ const LoanContent = () => {
   const closeBottomSheet = () => {
     Animated.parallel([
       Animated.timing(slideAnim, {
-        toValue: SCREEN_HEIGHT,
+        toValue: SHEET_HEIGHT,
         duration: 250,
         useNativeDriver: true,
       }),
@@ -150,15 +153,17 @@ const LoanContent = () => {
   const getStatusColor = (status, isDark) => {
     switch (status) {
       case 'ACTIVE':
-        return isDark ? 'bg-green-900 text-green-400' : 'bg-green-100 text-green-700';
+        return isDark ? 'bg-green-900 text-green-400' : 'bg-green-500 text-white';
       case 'COMPLETED':
-        return isDark ? 'bg-blue-900 text-blue-400' : 'bg-blue-100 text-blue-700';
+        return isDark ? 'bg-sky-900 text-sky-400' : 'bg-sky-500 text-white';
       case 'DEFAULTED':
         return isDark ? 'bg-red-900 text-red-400' : 'bg-red-100 text-red-700';
       case 'PAID':
-        return isDark ? 'bg-green-900 text-green-400' : 'bg-green-100 text-green-700';
+        return isDark ? 'bg-green-900 text-green-400' : 'bg-green-500 text-white';
       case 'PENDING':
-        return isDark ? 'bg-orange-900 text-orange-400' : 'bg-orange-100 text-orange-700';
+        return isDark ? 'bg-orange-900 text-orange-400' : 'bg-orange-500 text-white';
+      case 'PARTIAL':
+        return isDark ? 'bg-blue-900 text-blue-400' : 'bg-blue-500 text-white';
       default:
         return isDark ? 'bg-gray-900 text-gray-400' : 'bg-gray-100 text-gray-700';
     }
@@ -185,42 +190,12 @@ const LoanContent = () => {
   }
 
   // Fixed Repayment Item Component for Bottom Sheet
-  const RepaymentItem = ({ item, index }) => {
-    // Create animated values for each item
-    const itemOpacity = useRef(new Animated.Value(0)).current;
-    const itemTranslateY = useRef(new Animated.Value(50)).current;
-
-    // Animate item entrance when component mounts
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(itemOpacity, {
-            toValue: 1,
-            duration: 300,
-            delay: index * 100,
-            useNativeDriver: true,
-          }),
-          Animated.timing(itemTranslateY, {
-            toValue: 0,
-            duration: 300,
-            delay: index * 100,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }, []);
-
+  const RepaymentItem = ({ item }) => {
     return (
-      <Animated.View
-        style={{
-          opacity: itemOpacity,
-          transform: [{ translateY: itemTranslateY }]
-        }}
+      <View
         className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-2xl p-4 mb-3`}
       >
-        <View className="flex-row justify-between items-center mb-3">
+        <View className="flex-row bg justify-between items-center mb-3">
           <View className="flex-row items-center">
             <View className={`${isDarkMode ? 'bg-teal-900' : 'bg-teal-100'} p-2 rounded-lg mr-3`}>
               <Icon name="receipt-outline" size={20} color={isDarkMode ? '#2dd4bf' : '#2ec4b6'} />
@@ -235,7 +210,7 @@ const LoanContent = () => {
             </View>
           </View>
           <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status, isDarkMode)}`}>
-            <Text className="text-xs font-medium">
+            <Text className="text-xs font-medium text-white">
               {item.status}
             </Text>
           </View>
@@ -267,6 +242,14 @@ const LoanContent = () => {
               {formatDate(item.due_date)}
             </Text>
           </View>
+          {/* Show remaining amount if PARTIAL */}
+          {item.status === 'PARTIAL' && (
+            <View className="w-full px-1 mt-2">
+              <Text className={`${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'} text-xs font-semibold`}>
+                Remain: {formatCurrency((item.total_amount || 0) - (item.amount_paid || 0))}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Payment Date */}
@@ -298,13 +281,16 @@ const LoanContent = () => {
             </View>
           )}
         </View>
-      </Animated.View>
+      </View>
     );
   };
 
   // Fixed Bottom Sheet Component
   const BottomSheet = () => {
-    const currentData = sheetType === 'paid' ? paidterms : pendingterms;
+    const currentData =
+      sheetType === 'paid' ? paidterms :
+      sheetType === 'pending' ? pendingterms :
+      sheetType === 'partial' ? partialterms : [];
 
     console.log('Rendering bottom sheet with data:', currentData);
 
@@ -336,7 +322,7 @@ const LoanContent = () => {
               bottom: 0,
               left: 0,
               right: 0,
-              height: SCREEN_HEIGHT * 0.7,
+              height: SHEET_HEIGHT,
               transform: [{ translateY: slideAnim }],
             }}
             className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-3xl overflow-hidden`}
@@ -354,7 +340,7 @@ const LoanContent = () => {
               <View className="flex-row items-center justify-between">
                 <View>
                   <Text className={`text-xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>
-                    {sheetType === 'paid' ? 'Completed Payments' : 'Pending Payments'}
+                    {sheetType === 'paid' ? 'Completed Payments' : sheetType === 'partial' ? 'Partial Payments' : 'Pending Payments'}
                   </Text>
                   <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-sm`}>
                     {currentData.length} installments
@@ -374,24 +360,35 @@ const LoanContent = () => {
               <FlatList
                 data={currentData}
                 keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-                renderItem={({ item, index }) => <RepaymentItem item={item} index={index} />}
+                renderItem={({ item }) => <RepaymentItem item={item} />}
                 contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
                 showsVerticalScrollIndicator
                 scrollEnabled
                 keyboardShouldPersistTaps="handled"
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={5}
+                removeClippedSubviews={true}
+                getItemLayout={(data, index) => (
+                  { length: 160, offset: 160 * index, index } // 160 is estimated item height
+                )}
               />
             ) : (
               <View className="flex-1 items-center justify-center px-6">
                 <Icon
-                  name={sheetType === 'paid' ? 'checkmark-done-circle-outline' : 'time-outline'}
+                  name={sheetType === 'paid' ? 'checkmark-done-circle-outline' : sheetType === 'partial' ? 'alert-circle-outline' : 'time-outline'}
                   size={48}
                   color={isDarkMode ? '#6b7280' : '#9ca3af'}
                 />
                 <Text className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'} mt-3 mb-2`}>
-                  No {sheetType === 'paid' ? 'Completed' : 'Pending'} Payments
+                  No {sheetType === 'paid' ? 'Completed' : sheetType === 'partial' ? 'Partial' : 'Pending'} Payments
                 </Text>
                 <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-center`}>
-                  {sheetType === 'paid' ? 'No payments have been completed yet.' : 'All payments are up to date!'}
+                  {sheetType === 'paid'
+                    ? 'No payments have been completed yet.'
+                    : sheetType === 'partial'
+                      ? 'No partial payments found.'
+                      : 'All payments are up to date!'}
                 </Text>
               </View>
             )}
@@ -521,6 +518,24 @@ const LoanContent = () => {
               </Text>
               <Text className={`${isDarkMode ? 'text-green-300' : 'text-green-500'} text-xs`}>
                 Completed
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => openBottomSheet('partial')}
+              className={`flex-1 ${isDarkMode ? 'bg-blue-900' : 'bg-blue-50'} p-4 rounded-2xl`}
+            >
+              <View className="flex-row items-center justify-between mb-2">
+                <Icon name="alert-circle-outline" size={20} color={isDarkMode ? '#87bfff' : '#2667ff'} />
+                <Text className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} text-xs font-medium`}>
+                  VIEW ALL
+                </Text>
+              </View>
+              <Text className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} text-2xl font-bold mb-1`}>
+                {partialterms.length}
+              </Text>
+              <Text className={`${isDarkMode ? 'text-blue-300' : 'text-blue-500'} text-xs`}>
+                Partial
               </Text>
             </TouchableOpacity>
           </View>

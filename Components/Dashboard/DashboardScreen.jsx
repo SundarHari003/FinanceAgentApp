@@ -1,5 +1,5 @@
-import React, {  useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Alert, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
@@ -13,13 +13,10 @@ import Animated, {
 import Overviewcustomer from './Overviewcustomer';
 import LoanPerformance from './LoanPerformance';
 import LoanGraph from './LoanGraph';
-import {  useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
-import { BackHandler } from 'react-native';
 
 const DashboardScreen = () => {
-  
-  
   const scrollY = useSharedValue(0);
   const headerOpacity = useSharedValue(0);
   const navigation = useNavigation();
@@ -29,15 +26,21 @@ const DashboardScreen = () => {
     headerOpacity.value = withTiming(1, { duration: 800 });
   }, []);
 
-  useEffect(()=>{
-    //prevent the go back 
-    const onPress=()=>{
-      return;
-    }
-    const backHandler = BackHandler.addEventListener('hardwareBackPress',onPress);
-     return () => backHandler.remove();
-  },[])
-  // Update the dashboard data structure
+  // Remove or comment out the BackHandler logic to allow default back button behavior
+
+  useFocusEffect(
+    useCallback(() => {
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        BackHandler.exitApp(); // Exit the app
+        return true; // Prevent default navigation
+      });
+
+      return () => backHandler.remove(); // Cleanup when screen loses focus
+    }, [])
+  );
+
+
+  // Dashboard data structure
   const dashboardData = {
     customerMetrics: {
       totalCustomers: 1250,
@@ -82,14 +85,14 @@ const DashboardScreen = () => {
     const opacity = interpolate(
       scrollY.value,
       [0, 100],
-      [1, 1], // Changed to maintain full opacity
+      [1, 1],
       Extrapolate.CLAMP
     );
 
     return {
       opacity,
-      height: 200, // Fixed height
-      transform: [{ scale: 1 }], // Remove scaling effect
+      height: 200,
+      transform: [{ scale: 1 }],
     };
   });
 
@@ -198,7 +201,7 @@ const DashboardScreen = () => {
             </View>
           </View>
 
-          {/* Update Stats Items */}
+          {/* Stats Items */}
           <View className="flex-col gap-y-3 -mx-2">
             {[{
               label: 'Total Due',

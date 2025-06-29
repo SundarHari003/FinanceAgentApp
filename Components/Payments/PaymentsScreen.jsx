@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, ScrollView, ActivityIndicator, Pressable, Dimensions, RefreshControl } from 'react-native';
 import CalendarPicker from 'react-native-calendar-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -11,17 +11,17 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 import moment from 'moment';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { getallpayment, getsinglepaymentreducer } from '../../redux/Slices/paymentslice';
 import SkeletonBox from '../Common/SkeletonBox';
+import { useToast } from '../../Context/ToastContext';
 
 const PaymentItemSkeleton = () => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
 
   return (
     <View className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl mb-4 shadow-sm overflow-hidden`}>
-      {/* Header Section */}
       <View className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
         <View className="flex-row justify-between items-start">
           <View className="flex-1">
@@ -34,10 +34,7 @@ const PaymentItemSkeleton = () => {
           </View>
         </View>
       </View>
-
-      {/* Content Section */}
       <View className="p-4">
-        {/* Due Date and Status Row */}
         <View className="flex-row justify-between items-center mb-3">
           <View className="flex-row items-center flex-1">
             <View className={`w-4 h-4 mr-2 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} `} />
@@ -45,8 +42,6 @@ const PaymentItemSkeleton = () => {
           </View>
           <SkeletonBox width="20%" height={24} style={{ borderRadius: 12 }} />
         </View>
-
-        {/* Loan and Customer ID Section */}
         <View className={`flex-row justify-between ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-3`}>
           <View className="flex-1">
             <SkeletonBox width="40%" height={10} style={{ marginBottom: 6 }} />
@@ -59,8 +54,6 @@ const PaymentItemSkeleton = () => {
           </View>
         </View>
       </View>
-
-      {/* Footer Section */}
       <View className={`${isDarkMode ? 'bg-gray-700/80' : 'bg-gray-50/80'} px-4 py-3 flex-row items-center justify-between`}>
         <View className="flex-row items-center flex-1">
           <View className={`w-4 h-4 mr-2 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} `} />
@@ -71,7 +64,28 @@ const PaymentItemSkeleton = () => {
   );
 };
 
-// Error State Component
+const BottomSheetError = ({ onRetry, isDarkMode }) => {
+  return (
+    <View className="py-6 items-center">
+      <View className={`${isDarkMode ? 'bg-red-900/20' : 'bg-red-50'} w-12 h-12 rounded-full items-center justify-center mb-3`}>
+        <Icon name="error-outline" size={20} color="#dc2626" />
+      </View>
+      <Text className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+        Failed to load more payment
+      </Text>
+      <Text className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-center mb-3`}>
+        Something went wrong while loading more data
+      </Text>
+      <TouchableOpacity
+        onPress={onRetry}
+        className="bg-primary-100 px-4 py-2 rounded-lg"
+      >
+        <Text className="text-white text-sm font-medium">Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 const ErrorState = ({ onRetry }) => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
 
@@ -96,8 +110,7 @@ const ErrorState = ({ onRetry }) => {
   );
 };
 
-// PaymentItem Component (unchanged)
-const PaymentItem = ({ index, paymenthistoryDetails }) => {
+const PaymentItem = memo(({ index, paymenthistoryDetails }) => {
   const navigation = useNavigation();
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const offset = useSharedValue(50);
@@ -130,8 +143,7 @@ const PaymentItem = ({ index, paymenthistoryDetails }) => {
       onPress={() => {
         dispatch(getsinglepaymentreducer(paymenthistoryDetails));
         navigation.navigate('Paymentdetails');
-      }
-      }
+      }}
     >
       <Animated.View
         className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} z-0 rounded-2xl mb-4 shadow-sm overflow-hidden`}
@@ -153,7 +165,6 @@ const PaymentItem = ({ index, paymenthistoryDetails }) => {
             </View>
           </View>
         </View>
-
         <View className="p-4">
           <View className="flex-row justify-between items-center mb-3">
             <View className="flex-row items-center">
@@ -178,7 +189,6 @@ const PaymentItem = ({ index, paymenthistoryDetails }) => {
               </Text>
             </View>
           </View>
-
           <View className={`flex-row justify-between ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-3`}>
             <View className="flex-1">
               <Text className={`text-xs ${isDarkMode ? "text-gray-200" : "text-gray-500"} mb-1`}>Loan ID</Text>
@@ -190,7 +200,6 @@ const PaymentItem = ({ index, paymenthistoryDetails }) => {
               <Text className={`text-sm font-medium ${isDarkMode ? "text-white/50" : "text-gray-800"}`}>{paymenthistoryDetails?.loan?.customer_id}</Text>
             </View>
           </View>
-
           {(paymenthistoryDetails?.status.toLowerCase() === 'overdue' || paymenthistoryDetails?.status.toLowerCase() === 'partial') && (
             <View className={`mt-3 ${paymenthistoryDetails?.status.toLowerCase() === 'overdue'
               ? (isDarkMode ? 'bg-red-900/30' : 'bg-red-50')
@@ -208,7 +217,6 @@ const PaymentItem = ({ index, paymenthistoryDetails }) => {
             </View>
           )}
         </View>
-
         <View className={`${isDarkMode ? 'bg-gray-700/80' : 'bg-gray-50/80'} px-4 py-3 flex-row items-center justify-between`}>
           <View className="flex-row items-center">
             <Icon
@@ -229,34 +237,31 @@ const PaymentItem = ({ index, paymenthistoryDetails }) => {
       </Animated.View>
     </TouchableOpacity>
   );
-};
+});
 
-// Main Payment History Screen
 const PaymentsScreen = () => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const { Allpaymenthistory, isLoadingPayment, paymenterror, hasMore, totalPayments } = useSelector((state) => state.payment);
-
+  const { showToast } = useToast();
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortOption, setSortOption] = useState('All');
-  const [dateFilter, setDateFilter] = useState('');
-  const [dateFilterValue, setDateFilterValue] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [displayDateRange, setDisplayDateRange] = useState('');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-  // Scroll-to-top functionality
+  const [isSelectingEndDate, setIsSelectingEndDate] = useState(false);
   const flatListRef = useRef(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
 
-  // Animation values for scroll-to-top indicator
   const scrollIndicatorOpacity = useSharedValue(0);
   const scrollIndicatorScale = useSharedValue(0.8);
 
-  // Animated style for scroll-to-top indicator
   const scrollIndicatorStyle = useAnimatedStyle(() => ({
     opacity: scrollIndicatorOpacity.value,
     transform: [
@@ -265,10 +270,40 @@ const PaymentsScreen = () => {
     ],
   }));
 
-  // Handle scroll events
+
+  useEffect(() => {
+    if (paymenterror && Allpaymenthistory?.length > 0) {
+      showToast({
+        message: "Failed to load payments, please try again",
+        type: "error",
+        duration: 3000,
+        position: "top"
+      })
+      if ((startDate && endDate) || searchQuery || sortOption !== 'All') {
+        setEndDate(null);
+        setStartDate(null);
+        setSearchQuery('');
+        setSortOption('All');
+        setDisplayDateRange('');
+      }
+    }
+  }, [paymenterror])
+
+  useFocusEffect(
+    useCallback(() => {
+      if (paymenterror) {
+        handleRetry();
+      }
+      return () => {
+        scrollToTop();
+        console.log('cleanup if needed');
+      };
+    }, [])
+  );
+
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    const shouldShow = offsetY > 100; // Show indicator after scrolling 100px
+    const shouldShow = offsetY > 100;
 
     if (shouldShow !== showScrollToTop) {
       setShowScrollToTop(shouldShow);
@@ -283,23 +318,20 @@ const PaymentsScreen = () => {
     }
   };
 
-  // Scroll to top function
   const scrollToTop = () => {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
   };
 
-  // Base query params that will be maintained throughout pagination
   const getBaseQueryParams = () => ({
     "status": sortOption === 'All' ? '' : sortOption.toUpperCase(),
     "loanid": searchQuery,
-    "dueDatestart": dateFilterValue ? dateFilterValue : '',
-    "dueDateend": dateFilterValue ? dateFilterValue : '',
+    "dueDatestart": startDate ? moment(startDate).format('YYYY-MM-DD') : '',
+    "dueDateend": endDate ? moment(endDate).format('YYYY-MM-DD') : '',
     "limit": 10
   });
 
-  // Fetch payments function
   const fetchPayments = async (pageNum = 1, isRefresh = false, isLoadMore = false) => {
     try {
       if (isLoadMore) {
@@ -330,20 +362,17 @@ const PaymentsScreen = () => {
     }
   };
 
-  // Initial load and filter changes
   useEffect(() => {
     setPage(1);
     fetchPayments(1);
-  }, [sortOption, searchQuery, dateFilterValue]);
+  }, [sortOption, searchQuery]);
 
-  // Pull to refresh handler
   const handleRefresh = () => {
     setRefreshing(true);
     setPage(1);
     fetchPayments(1, true);
   };
 
-  // Load more data when reaching end of list
   const handleLoadMore = () => {
     if (!isLoadingPayment && !isLoadingMore && hasMore && Allpaymenthistory.length > 0) {
       const nextPage = page + 1;
@@ -352,10 +381,11 @@ const PaymentsScreen = () => {
     }
   };
 
-  // Render footer for loading more items
   const renderFooter = () => {
     if (!isLoadingMore) return null;
-
+    if (paymenterror && Allpaymenthistory?.length > 0) {
+      return (<BottomSheetError onRetry={() => fetchPayments(page, false, true)} isDarkMode={isDarkMode} />)
+    }
     return (
       <View className="py-6 -mt-2 items-center">
         <ActivityIndicator size="small" color="#2ec4b6" />
@@ -366,34 +396,40 @@ const PaymentsScreen = () => {
     );
   };
 
-  // Handle sort selection
   const handleSort = (option) => {
     setSortOption(option);
     closeDropdownWithAnimation();
   };
 
-  // Handle date selection
   const handleDateSelect = (date) => {
-    if (date) {
-      const formattedDate = moment(date).format('YYYY-MM-DD');
-      const displayDate = moment(date).format('DD MMM YYYY');
-      setDateFilter(displayDate);
-      setDateFilterValue(formattedDate);
+    const selectedDate = moment(date);
+    if (!startDate || (startDate && endDate)) {
+      setStartDate(selectedDate);
+      setEndDate(null);
+      setDisplayDateRange(`${selectedDate.format('DD MMM YYYY')} - `);
+    } else if (startDate && !endDate && selectedDate.isSameOrAfter(startDate)) {
+      setEndDate(selectedDate);
+      setDisplayDateRange(`${moment(startDate).format('DD MMM YYYY')} - ${selectedDate.format('DD MMM YYYY')}`);
     }
-    setShowCalendarModal(false);
   };
 
-  // Clear date filter
   const clearDateFilter = () => {
-    setDateFilter('');
-    setDateFilterValue('');
+    setStartDate(null);
+    setEndDate(null);
+    setDisplayDateRange('');
     setShowCalendarModal(false);
   };
 
-  // Retry function
+  const handleSearchDates = () => {
+    setShowCalendarModal(false);
+    setPage(1);
+    fetchPayments(1);
+  };
+
   const handleRetry = () => {
-    setDateFilter('');
-    setDateFilterValue('');
+    setStartDate(null);
+    setEndDate(null);
+    setDisplayDateRange('');
     setSortOption('All');
     setPage(1);
     const queryparam = {
@@ -419,7 +455,6 @@ const PaymentsScreen = () => {
     </View>
   );
 
-  // Animation values
   const sortDropdownHeight = useSharedValue(0);
   const sortDropdownOpacity = useSharedValue(0);
 
@@ -457,7 +492,7 @@ const PaymentsScreen = () => {
 
     if (!isOpen) {
       setShowSortDropdown(true);
-      sortDropdownHeight.value = withSpring(180, {
+      sortDropdownHeight.value = withSpring(225, {
         damping: 15,
         stiffness: 100
       });
@@ -473,16 +508,16 @@ const PaymentsScreen = () => {
   const handleBackdropPress = () => {
     closeDropdownWithAnimation();
   };
+  const disableAllDates = (date) => true;
 
   return (
     <View className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
-      {showSortDropdown && (
-        <Pressable
-          className={`absolute inset-0 ${isDarkMode ? 'bg-black/60' : 'bg-black/20'} z-20`}
-          onPress={handleBackdropPress}
-        />
-      )}
-
+        {/* {showSortDropdown && (
+          <Pressable
+            className={`absolute inset-0 ${isDarkMode ? 'bg-black/60' : 'bg-black/20'} z-[990]`}
+            onPress={handleBackdropPress}
+          />
+        )} */}
       <View className="bg-primary-100 pt-10 pb-4 px-4 rounded-b-[32px]">
         <Text className="text-2xl font-bold text-white mb-2">Payment History</Text>
         <Text className="text-white/70 mb-4">View and Manage the all payments</Text>
@@ -497,7 +532,6 @@ const PaymentsScreen = () => {
           />
         </View>
       </View>
-
       <View className="px-4 mt-4 flex-1">
         <View className="flex-row justify-between mb-3 relative">
           <TouchableOpacity
@@ -505,11 +539,10 @@ const PaymentsScreen = () => {
             className={`flex-1 mr-2 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-3 rounded-xl flex-row items-center justify-between shadow-sm`}
           >
             <Text className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} font-medium`} numberOfLines={1}>
-              {dateFilter || 'Filter by Date'}
+              {displayDateRange || 'Filter by Date Range'}
             </Text>
             <Icon name="calendar-today" size={20} color={isDarkMode ? '#9ca3af' : '#4b5563'} />
           </TouchableOpacity>
-
           <TouchableOpacity
             onPress={toggleSortDropdown}
             className={`flex-1 ml-2 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} z-30 p-3 rounded-xl flex-row items-center justify-between shadow-sm`}
@@ -527,12 +560,10 @@ const PaymentsScreen = () => {
             />
           </TouchableOpacity>
         </View>
-
-        {/* Sort Dropdown */}
         <Animated.View
-          style={[sortDropdownStyle]}
-          className={`absolute top-[60px] right-4 left-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'
-            } rounded-xl shadow-xl z-40 overflow-hidden`}
+          style={[sortDropdownStyle, { right: 12 }]}
+          className={`absolute top-[50px] w-1/2 right-0 ${isDarkMode ? 'bg-gray-800' : 'bg-white'
+            } rounded-xl shadow-xl z-[90] border border-gray-200 overflow-hidden`}
         >
           {['All', 'Paid', 'Pending', 'Partial', 'Overdue'].map((option) => (
             <TouchableOpacity
@@ -552,10 +583,7 @@ const PaymentsScreen = () => {
             </TouchableOpacity>
           ))}
         </Animated.View>
-
-        {/* Content */}
         {isLoadingPayment && page === 1 ? (
-          // Skeleton Loading State for initial load
           <FlatList
             data={[1, 2, 3, 4, 5]}
             keyExtractor={(item) => item.toString()}
@@ -563,9 +591,9 @@ const PaymentsScreen = () => {
             contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
           />
-        ) : paymenterror ? (
+        ) : paymenterror && Allpaymenthistory?.length == 0 ? (
           <ErrorState onRetry={handleRetry} />
-        ) : Allpaymenthistory.length === 0 ? (
+        ) : Allpaymenthistory?.length == 0 ? (
           <View className="flex-1 items-center justify-center py-16">
             <View className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} w-20 h-20 rounded-full items-center justify-center mb-4`}>
               <Icon name="receipt-long" size={50} color={isDarkMode ? '#9ca3af' : '#6b7280'} />
@@ -576,11 +604,15 @@ const PaymentsScreen = () => {
             <Text className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-center px-8`}>
               Try adjusting your search or filter criteria to find the payments you're looking for.
             </Text>
+            {/* <TouchableOpacity
+              onPress={handleRetry}
+              className="bg-primary-100 px-6 py-3 my-3 rounded-xl"
+            >
+              <Text className="text-white font-medium">Try Again</Text>
+            </TouchableOpacity> */}
           </View>
         ) : (
-          // Data List with Scroll-to-Top Indicator
           <View className='relative mb-8'>
-            {/* Scroll-to-Top Indicator */}
             <Animated.View
               style={[scrollIndicatorStyle]}
               className='absolute z-50 w-full flex-row justify-center top-2'
@@ -601,7 +633,6 @@ const PaymentsScreen = () => {
                 <Text className='text-white text-sm font-medium'>{`Back to Top ${Allpaymenthistory.length || 0} / ${totalPayments}`}</Text>
               </TouchableOpacity>
             </Animated.View>
-
             <FlatList
               ref={flatListRef}
               data={Allpaymenthistory}
@@ -613,15 +644,15 @@ const PaymentsScreen = () => {
               onEndReached={handleLoadMore}
               onEndReachedThreshold={0.1}
               onScroll={handleScroll}
-              scrollEventThrottle={16} // Smooth scroll events
+              scrollEventThrottle={16}
               maintainVisibleContentPosition={{
                 minIndexForVisible: 0,
                 autoscrollToTopThreshold: 10
-              }} // Helps maintain position during data updates
-              removeClippedSubviews={true} // Performance optimization
-              maxToRenderPerBatch={10} // Render optimization
-              updateCellsBatchingPeriod={50} // Batch updates
-              initialNumToRender={15} // Initial render count
+              }}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
+              initialNumToRender={15}
               windowSize={10}
               refreshControl={
                 <RefreshControl
@@ -640,8 +671,6 @@ const PaymentsScreen = () => {
           </View>
         )}
       </View>
-
-      {/* Calendar Modal */}
       <Modal
         visible={showCalendarModal}
         transparent={true}
@@ -657,20 +686,51 @@ const PaymentsScreen = () => {
             <CalendarPicker
               onDateChange={handleDateSelect}
               selectedDayColor="#2ec4b6"
+              disabledDatesTextStyle={{ color: isDarkMode ? '#6b7280' : '#d1d5db' }}
               selectedDayTextColor="#ffffff"
               todayBackgroundColor={isDarkMode ? '#374151' : '#f2f2f2'}
               todayTextStyle={{ color: '#2ec4b6' }}
               textStyle={{ color: isDarkMode ? '#f3f4f6' : '#333' }}
               previousComponent={<CustomPrevious />}
               nextComponent={<CustomNext />}
-              initialDate={dateFilter ? moment(dateFilter, 'DD MMM YYYY').toDate() : new Date()}
+              disabledDates={(date) => {
+                if (startDate && endDate) {
+                  return disableAllDates(date)
+                }
+              }}
+              initialDate={startDate ? moment(startDate).toDate() : new Date()}
+              selectedStartDate={startDate ? moment(startDate).toDate() : null}
+              selectedEndDate={endDate ? moment(endDate).toDate() : null}
+              allowRangeSelection={true}
+              selectedRangeStyle={{ backgroundColor: '#2ec4b6' }}
             />
-            <TouchableOpacity
-              className="mt-4 p-3 bg-primary-100 rounded-lg items-center"
-              onPress={clearDateFilter}
-            >
-              <Text className="text-white font-medium">Clear Filter</Text>
-            </TouchableOpacity>
+
+            <View className="flex-col justify-between mt-4">
+              {startDate && endDate && <TouchableOpacity
+                className="p-3 bg-primary-100/20 border-2 border-primary-100 rounded-lg mb-4"
+                onPress={() => {
+                  setStartDate(null);
+                  setEndDate(null);
+                }}
+              >
+                <Text className="text-primary-100 font-medium text-center">Clear Selected Date</Text>
+              </TouchableOpacity>}
+              <View className="flex-row justify-between ">
+                <TouchableOpacity
+                  className="p-3 bg-gray-500 rounded-lg flex-1 mr-2"
+                  onPress={clearDateFilter}
+                >
+                  <Text className="text-white font-medium text-center">Clear Filter</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="p-3 bg-primary-100 rounded-lg flex-1 ml-2"
+                  onPress={handleSearchDates}
+                  disabled={!startDate}
+                >
+                  <Text className="text-white font-medium text-center">Search</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </TouchableOpacity>
       </Modal>

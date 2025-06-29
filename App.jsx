@@ -24,6 +24,9 @@ import AddLoan from './Components/Loan/AddLoan';
 import NotificationScreen from './Components/Notification';
 import EditCustomerScreen from './Components/Customers/EditCustomer';
 import { useSelector } from 'react-redux';
+import LoansScreen from './Components/Loan/LoansScreen';
+import Loanpaymentgetspay from './Components/Loan/Loanpaymentgetspay';
+import Moreloanadd from './Components/Loan/Moreloanadd';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -56,6 +59,7 @@ const customLightTheme = {
 const HomeStack = createNativeStackNavigator();
 const CustomersStack = createNativeStackNavigator();
 const PendingStack = createNativeStackNavigator();
+const LoansStack = createNativeStackNavigator();
 const PaymentsStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
 
@@ -131,10 +135,38 @@ const CustomersStackScreen = () => (
   </CustomersStack.Navigator>
 );
 
-const PendingStackScreen = () => (
-  <PendingStack.Navigator screenOptions={{ headerShown: false }}>
-    <PendingStack.Screen name="PendingMain" component={PendingDuesScreen} />
-    <ProfileStack.Screen name="Paymentdetails" component={PaymentDetails}
+// const PendingStackScreen = () => (
+//   <PendingStack.Navigator screenOptions={{ headerShown: false }}>
+//     <PendingStack.Screen name="PendingMain" component={PendingDuesScreen} />
+//     <ProfileStack.Screen name="Paymentdetails" component={PaymentDetails}
+//       options={{
+//         tabBarStyle: { display: 'none' },
+//         headerShown: true,
+//         headerTitle: 'Payment Details',
+//         headerStyle: { backgroundColor: '#1a9c94' },
+//         headerTintColor: '#fff',
+//         headerTitleStyle: { fontWeight: 'bold' },
+//       }}
+//     />
+//     {/* Add more screens for Pending stack */}
+//   </PendingStack.Navigator>
+// );
+const LoansStackScreen = () => (
+  <LoansStack.Navigator screenOptions={{ headerShown: false }}>
+    <LoansStack.Screen name="LoansMain" component={LoansScreen} />
+    <LoansStack.Screen name="Loandetails" component={LoanDetails}
+      options={{
+        tabBarStyle: { display: 'none' }, 
+        headerStyle: { backgroundColor: '#1a9c94' },
+        headerTintColor: '#fff',
+    }}
+    />
+    <LoansStack.Screen name='addloanformultiplecustomer' component={Moreloanadd}
+      options={{
+        tabBarStyle: { display: 'none' },
+      }}
+    />
+     <LoansStack.Screen name="Paymentdetailsfromloan" component={Loanpaymentgetspay}
       options={{
         tabBarStyle: { display: 'none' },
         headerShown: true,
@@ -144,10 +176,8 @@ const PendingStackScreen = () => (
         headerTitleStyle: { fontWeight: 'bold' },
       }}
     />
-    {/* Add more screens for Pending stack */}
-  </PendingStack.Navigator>
-);
-
+  </LoansStack.Navigator>
+)
 const PaymentsStackScreen = () => (
   <PaymentsStack.Navigator screenOptions={{ headerShown: false }}>
     <PaymentsStack.Screen name="PaymentsMain" component={PaymentsScreen} />
@@ -169,7 +199,8 @@ const ProfileStackScreen = () => (
     <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
     <ProfileStack.Screen name="EditProfile" component={Editprofile}
       options={{
-        tabBarStyle: { display: 'none' } // Set header title style
+        tabBarStyle: { display: 'none' },
+        headerStyle: { backgroundColor: '#1a9c94' }, // Set header title style
       }}
     />
     <ProfileStack.Screen name="HelpScreen" component={HelpScreen}
@@ -219,8 +250,8 @@ const MainApp = () => {
             iconName = 'home';
           } else if (route.name === 'Customers') {
             iconName = 'people';
-          } else if (route.name === 'Pending') {
-            iconName = 'access-time';
+          } else if (route.name === 'Loans') {
+            iconName = 'data-saver-off';
           } else if (route.name === 'Payments') {
             iconName = 'payments';
           } else if (route.name === 'Profile') {
@@ -241,7 +272,7 @@ const MainApp = () => {
     >
       <Tab.Screen name="Home" component={HomeStackScreen} />
       <Tab.Screen name="Customers" component={CustomersStackScreen} />
-      <Tab.Screen name="Pending" component={PendingStackScreen} />
+      <Tab.Screen name="Loans" component={LoansStackScreen} />
       <Tab.Screen name="Payments" component={PaymentsStackScreen} />
       <Tab.Screen name="Profile" component={ProfileStackScreen} />
     </Tab.Navigator>

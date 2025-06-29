@@ -8,15 +8,14 @@ import {
     Share,
     Pressable,
     TextInput,
-    Modal,
-    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useHideTabBar } from '../../hooks/useHideTabBar';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import moment from 'moment';
-import LinearGradient from 'react-native-linear-gradient';
+import moment from 'moment'; // For consistent date formatting
+import LinearGradient from 'react-native-linear-gradient'; // For modern gradient backgrounds
 import { useDispatch, useSelector } from 'react-redux';
 import { getallpayment, updaterepaymentstatus } from '../../redux/Slices/paymentslice';
 import { clearsingleloadnrepayments } from '../../redux/Slices/loanSlice';
@@ -24,7 +23,7 @@ import { useToast } from '../../Context/ToastContext';
 
 const { width } = Dimensions.get('window');
 
-// AmountInput component remains unchanged
+// Move AmountInput outside as a separate component to prevent re-creation
 const AmountInput = React.memo(({
     paymentAmount,
     onAmountChange,
@@ -71,18 +70,13 @@ const AmountInput = React.memo(({
                     >
                         <Text className="text-white text-center text-sm">Pay Full Remaining Amount</Text>
                     </TouchableOpacity>
-                    <View className="mt-2 p-2 bg-white/10 rounded-lg">
-                        <Text className="text-white/60 text-xs text-center">
-                            Maximum allowed: ₹{Number(remainamount || 0).toLocaleString()}
-                        </Text>
-                    </View>
                 </View>
             )}
 
             {(actualStatus === 'PENDING' || actualStatus === 'OVERDUE') && (
                 <View className="mt-3 pt-3 border-t border-white/20">
                     <View className="flex-row justify-between mb-2">
-                        <Text className="text-white/70 text-sm">Installment Amount:</Text>
+                        <Text className="text-white/70 text-sm">Total Amount:</Text>
                         <Text className="text-white font-semibold text-sm">
                             ₹{Number(totalAmount || 0).toLocaleString()}
                         </Text>
@@ -91,29 +85,32 @@ const AmountInput = React.memo(({
                         onPress={onSetFullAmount}
                         className="bg-white/20 p-2 rounded-lg"
                     >
-                        <Text className="text-white text-center text-sm">Pay Full Installment</Text>
+                        <Text className="text-white text-center text-sm">Pay Full Amount</Text>
                     </TouchableOpacity>
-                    <View className="mt-2 p-2 bg-white/10 rounded-lg">
-                        <Text className="text-white/60 text-xs text-center">
-                            Maximum allowed: ₹{Number(totalAmount || 0).toLocaleString()}
-                        </Text>
-                    </View>
                 </View>
             )}
         </View>
     </View>
 ));
 
-const PaymentDetails = () => {
+const Loanpaymentgetspay = () => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
-    const { showToast } = useToast();
+    const { showToast} =useToast();
     const isDarkMode = useSelector((state) => state.theme.isDarkMode);
     const { singlerepaymentdetails, isLoadingPayment } = useSelector((state) => state.payment);
-    useHideTabBar(['Paymentdetails']);
 
-    const [selectedMethod, setSelectedMethod] = useState('CASH');
+    const [selectedMethod, setSelectedMethod] = useState('CASH'); // Default to Cash
     const [paymentAmount, setPaymentAmount] = useState('');
+
+
+    // useFocusEffect(
+    //     useCallback(() => {
+    //         return () => {
+    //             dispatch(clearsingleloadnrepayments());
+    //         }
+    //     }, [])
+    // )
 
     // Animation for buttons
     const scale = useSharedValue(1);
@@ -129,11 +126,13 @@ const PaymentDetails = () => {
         scale.value = withSpring(1, { damping: 20, stiffness: 300 });
     };
 
+    // Memoize calculated values to prevent unnecessary re-renders
     const remainamount = useMemo(() =>
         Number(singlerepaymentdetails?.total_amount) - Number(singlerepaymentdetails?.amount_paid),
         [singlerepaymentdetails?.total_amount, singlerepaymentdetails?.amount_paid]
     );
 
+    // Check if payment is overdue based on due date
     const isOverdue = useCallback(() => {
         if (!singlerepaymentdetails?.due_date) return false;
         const today = moment();
@@ -141,63 +140,31 @@ const PaymentDetails = () => {
         return today.isAfter(dueDate, 'day') && singlerepaymentdetails?.status !== 'PAID';
     }, [singlerepaymentdetails?.due_date, singlerepaymentdetails?.status]);
 
+    // Get actual status (show as overdue if due date has passed)
     const actualStatus = useMemo(() => {
         if (singlerepaymentdetails?.status === 'PAID') return 'PAID';
         if (isOverdue()) return 'OVERDUE';
         return singlerepaymentdetails?.status;
     }, [singlerepaymentdetails?.status, isOverdue]);
 
-    const getMaxAllowedAmount = useCallback(() => {
-        switch (actualStatus) {
-            case 'PARTIAL':
-                return remainamount;
-            case 'PENDING':
-            case 'OVERDUE':
-                return Number(singlerepaymentdetails?.total_amount || 0);
-            default:
-                return 0;
-        }
-    }, [actualStatus, remainamount, singlerepaymentdetails?.total_amount]);
-
+    // Memoize amount change handler
     const handleAmountChange = useCallback((amount) => {
+        // Allow only numbers and a single decimal point
         if (/^\d*\.?\d*$/.test(amount)) {
-            const numericAmount = parseFloat(amount) || 0;
-            const maxAllowed = getMaxAllowedAmount();
-
-            if (numericAmount > maxAllowed && amount !== '') {
-                let statusText = '';
-                switch (actualStatus) {
-                    case 'PARTIAL':
-                        statusText = 'remaining amount';
-                        break;
-                    case 'PENDING':
-                    case 'OVERDUE':
-                        statusText = 'installment amount';
-                        break;
-                }
-
-                showToast({
-                    message: `Maximum allowed ${statusText} is ₹${maxAllowed.toLocaleString()}`,
-                    type: 'info',
-                    duration: 3000,
-                    position: 'top'
-                });
-                return;
-            }
-
             setPaymentAmount(amount);
         }
-    }, [actualStatus, getMaxAllowedAmount, showToast]);
+    }, []);
 
+    // Memoize button handlers
     const handleSetFullAmount = useCallback(() => {
-        const maxAmount = getMaxAllowedAmount();
-        setPaymentAmount(maxAmount.toString());
-    }, [getMaxAllowedAmount]);
+        setPaymentAmount(singlerepaymentdetails?.total_amount?.toString() || '');
+    }, [singlerepaymentdetails?.total_amount]);
 
     const handleSetRemainingAmount = useCallback(() => {
         setPaymentAmount(remainamount.toString());
     }, [remainamount]);
 
+    // Share functionality
     const handleShare = async () => {
         try {
             const message = `
@@ -222,6 +189,7 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
         }
     };
 
+    // Status color mapping
     const getStatusColor = (status) => {
         switch (status) {
             case 'PAID':
@@ -238,14 +206,16 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
     };
 
     const statusColor = useMemo(() => getStatusColor(actualStatus), [actualStatus]);
+    console.log(paymentAmount, "paymentAmount");
 
+    // Customer Info Card Component
     const CustomerInfoCard = ({ colors }) => (
         <View className="bg-white/20 rounded-2xl p-5 mb-4 shadow-md">
             <View className="flex-row items-center mb-4">
                 <View className="bg-white/30 w-8 h-8 rounded-lg items-center justify-center">
                     <Icon name="person" size={20} color={colors} />
                 </View>
-                <Text style={{ color: colors }} className="opacity-80 font-bold text-lg ml-3">Customer Details</Text>
+                <Text style={{ color: colors }} className={` opacity-80 font-bold text-lg ml-3`}>Customer Details</Text>
             </View>
             <View className="grid grid-cols-2 gap-3">
                 {[{
@@ -275,6 +245,7 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
         </View>
     );
 
+    // Payment Method Card Component
     const PaymentMethodCard = ({ method, index }) => (
         <TouchableOpacity
             onPress={() => method.enabled && setSelectedMethod(method.id)}
@@ -299,6 +270,7 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
         </TouchableOpacity>
     );
 
+    // Payment Breakdown Component
     const PaymentBreakdown = () => {
         const breakdownItems = [
             {
@@ -376,6 +348,7 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
         );
     };
 
+    // Render content based on payment status
     const renderPaymentContent = () => {
         const paymentMethods = [
             {
@@ -383,14 +356,14 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
                 name: 'UPI',
                 icon: 'phone-portrait',
                 desc: 'Pay using UPI apps',
-                enabled: false
+                enabled: false // UPI disabled
             },
             {
                 id: 'CASH',
                 name: 'Cash',
                 icon: 'cash-outline',
                 desc: 'Cash on payment',
-                enabled: true
+                enabled: true // Cash enabled by default
             }
         ];
 
@@ -398,6 +371,7 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
             case 'PAID':
                 return (
                     <LinearGradient colors={statusColor.gradient} className="rounded-b-[40px] p-6 mb-5">
+                        {/* Status header */}
                         <View className="items-center mb-6">
                             <View className="bg-white/20 w-16 h-16 rounded-full items-center justify-center mb-3 shadow-md">
                                 <Icon name="checkmark-circle" size={32} color="white" />
@@ -442,6 +416,7 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
                             onSetRemainingAmount={handleSetRemainingAmount}
                         />
 
+                        {/* Payment method selection */}
                         <View className="bg-white/10 rounded-2xl p-5 shadow-sm">
                             <Text className="text-white font-semibold text-lg mb-3">Select Payment Method</Text>
                             <View className="space-y-3">
@@ -569,38 +544,21 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
         }
     };
 
+    // Validate payment amount
     const validatePaymentAmount = () => {
         const amount = parseFloat(paymentAmount);
-        const maxAllowed = getMaxAllowedAmount();
-
         if (!amount || amount <= 0) {
-            showToast({
-                message: 'Please enter a valid payment amount',
-                type: 'error',
-                duration: 3000,
-                position: 'top'
-            });
+            Alert.alert('Invalid Amount', 'Please enter a valid payment amount');
             return false;
         }
 
-        if (amount > maxAllowed) {
-            let statusText = '';
-            switch (actualStatus) {
-                case 'PARTIAL':
-                    statusText = 'remaining amount';
-                    break;
-                case 'PENDING':
-                case 'OVERDUE':
-                    statusText = 'installment amount';
-                    break;
-            }
+        if (actualStatus === 'PARTIAL' && amount > remainamount) {
+            Alert.alert('Amount Exceeds', `Payment amount cannot exceed remaining amount of ₹${remainamount.toLocaleString()}`);
+            return false;
+        }
 
-            showToast({
-                message: `Payment amount cannot exceed ${statusText} of ₹${maxAllowed.toLocaleString()}`,
-                type: 'error',
-                duration: 3000,
-                position: 'top'
-            });
+        if ((actualStatus === 'PENDING' || actualStatus === 'OVERDUE') && amount > Number(singlerepaymentdetails?.total_amount)) {
+            Alert.alert('Amount Exceeds', `Payment amount cannot exceed total amount of ₹${Number(singlerepaymentdetails?.total_amount).toLocaleString()}`);
             return false;
         }
 
@@ -608,184 +566,169 @@ Due Date: ${moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')}` :
     };
 
     return (
-        <>
-            <ScrollView
-                className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}
-                keyboardShouldPersistTaps="handled"
-            >
-                <View className="p-5">
-                    {renderPaymentContent()}
+        <ScrollView className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`} keyboardShouldPersistTaps="handled">
+            <View className="p-5">
+                {renderPaymentContent()}
 
-                    <View className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl p-5 mb-5 shadow-sm`}>
-                        <View className="flex-row items-center justify-between mb-4">
-                            <View className="flex-row items-center">
-                                <View className={`${isDarkMode ? 'bg-primary-100/20' : 'bg-primary-100/10'} w-8 h-8 rounded-lg items-center justify-center mr-3`}>
-                                    <Icon name="receipt-outline" size={20} color="#2ec4b6" />
-                                </View>
-                                <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-bold text-lg`}>
-                                    Transaction Details
-                                </Text>
+                {/* Transaction Details Section */}
+                <View className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl p-5 mb-5 shadow-sm`}>
+                    <View className="flex-row items-center justify-between mb-4">
+                        <View className="flex-row items-center">
+                            <View className={`${isDarkMode ? 'bg-primary-100/20' : 'bg-primary-100/10'} w-8 h-8 rounded-lg items-center justify-center mr-3`}>
+                                <Icon name="receipt-outline" size={20} color="#2ec4b6" />
                             </View>
-                            <TouchableOpacity onPress={handleShare} className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded-lg`}>
-                                <Icon name="share-social-outline" size={20} color="#2ec4b6" />
-                            </TouchableOpacity>
+                            <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-bold text-lg`}>
+                                Transaction Details
+                            </Text>
                         </View>
+                        <TouchableOpacity onPress={handleShare} className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded-lg`}>
+                            <Icon name="share-social-outline" size={20} color="#2ec4b6" />
+                        </TouchableOpacity>
+                    </View>
 
-                        <View className="flex-col gap-y-1">
-                            {[
-                                { label: 'Payment ID', value: singlerepaymentdetails?.id || 'N/A' },
-                                {
-                                    label: 'Payment Date',
-                                    value: singlerepaymentdetails?.payment_date
-                                        ? moment(singlerepaymentdetails.payment_date).format('DD MMM YYYY')
-                                        : 'N/A',
-                                },
-                                {
-                                    label: 'Due Date',
-                                    value: singlerepaymentdetails?.due_date
-                                        ? moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')
-                                        : 'N/A',
-                                },
-                                { label: 'Payment Method', value: selectedMethod || 'N/A' },
-                                {
-                                    label: 'Payment Status',
-                                    value: actualStatus,
-                                    valueStyle: statusColor.text,
-                                    chip: true,
-                                },
-                            ].map((item, index) => (
-                                <View
-                                    key={index}
-                                    className={`flex-row items-center justify-between p-3 rounded-xl ${isDarkMode
-                                        ? index % 2 === 0 ? 'bg-gray-700' : 'bg-gray-800'
-                                        : index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                                        }`}
-                                >
-                                    <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-medium text-sm`}>
-                                        {item.label}
-                                    </Text>
-                                    {item.chip ? (
-                                        <View className={`${statusColor.bg} px-3 py-1 rounded-full`}>
-                                            <Text className={`${statusColor.text} font-medium text-sm`}>
-                                                {item.value}
-                                            </Text>
-                                        </View>
-                                    ) : (
-                                        <Text className={`font-semibold text-sm ${item.valueStyle || (isDarkMode ? 'text-gray-100' : 'text-gray-800')
-                                            }`}>
+                    <View className="space-y-1">
+                        {[
+                            { label: 'Payment ID', value: singlerepaymentdetails?.id || 'N/A' },
+                            {
+                                label: 'Payment Date',
+                                value: singlerepaymentdetails?.payment_date
+                                    ? moment(singlerepaymentdetails.payment_date).format('DD MMM YYYY')
+                                    : 'N/A',
+                            },
+                            {
+                                label: 'Due Date',
+                                value: singlerepaymentdetails?.due_date
+                                    ? moment(singlerepaymentdetails?.due_date).format('DD MMM YYYY')
+                                    : 'N/A',
+                            },
+                            { label: 'Payment Method', value: selectedMethod || 'N/A' },
+                            {
+                                label: 'Payment Status',
+                                value: actualStatus,
+                                valueStyle: statusColor.text,
+                                chip: true,
+                            },
+                        ].map((item, index) => (
+                            <View
+                                key={index}
+                                className={`flex-row items-center justify-between p-3 rounded-xl ${isDarkMode
+                                    ? index % 2 === 0 ? 'bg-gray-700' : 'bg-gray-800'
+                                    : index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+                                    }`}
+                            >
+                                <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-medium text-sm`}>
+                                    {item.label}
+                                </Text>
+                                {item.chip ? (
+                                    <View className={`${statusColor.bg} px-3 py-1 rounded-full`}>
+                                        <Text className={`${statusColor.text} font-medium text-sm`}>
                                             {item.value}
                                         </Text>
-                                    )}
-                                </View>
-                            ))}
-                        </View>
-
-                        {actualStatus === 'PAID' && (
-                            <View className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
-                                <View className="flex-row items-center justify-between">
-                                    <View className="flex-row items-center">
-                                        <Icon name="time-outline" size={16} color={isDarkMode ? '#9ca3af' : '#6b7280'} />
-                                        <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm ml-2`}>
-                                            Paid on
-                                        </Text>
                                     </View>
-                                    <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-medium text-sm`}>
-                                        {moment(singlerepaymentdetails?.payment_date).format('hh:mm A')}
+                                ) : (
+                                    <Text className={`font-semibold text-sm ${item.valueStyle || (isDarkMode ? 'text-gray-100' : 'text-gray-800')
+                                        }`}>
+                                        {item.value}
+                                    </Text>
+                                )}
+                            </View>
+                        ))}
+                    </View>
+
+                    {actualStatus === 'PAID' && (
+                        <View className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                            <View className="flex-row items-center justify-between">
+                                <View className="flex-row items-center">
+                                    <Icon name="time-outline" size={16} color={isDarkMode ? '#9ca3af' : '#6b7280'} />
+                                    <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm ml-2`}>
+                                        Paid on
                                     </Text>
                                 </View>
-                            </View>
-                        )}
-                    </View>
-
-                    <Pressable
-                        onPressIn={handlePressIn}
-                        onPressOut={handlePressOut}
-                        disabled={isLoadingPayment || paymentAmount == '' || (actualStatus !== 'PAID' && !selectedMethod)}
-                        onPress={() => {
-                            if (actualStatus === 'PAID') {
-                                console.log('Download receipt');
-                            } else {
-                                if (!validatePaymentAmount()) return;
-
-                                const payload = {
-                                    "loan_id": singlerepaymentdetails?.loan_id,
-                                    "installment_number": singlerepaymentdetails?.installment_number,
-                                    "amount_paid": parseFloat(paymentAmount),
-                                    "payment_date": moment(new Date()).format('YYYY-MM-DD'),
-                                    "notes": "Cash payment received",
-                                    "payment_method": selectedMethod,
-                                    "repayment_id": singlerepaymentdetails?.id
-                                };
-                                console.log('Payment payload:', payload);
-                                dispatch(updaterepaymentstatus(payload)).then((response) => {
-                                    if (response?.payload?.success) {
-                                        showToast({
-                                            message: 'Payment made Successfully!',
-                                            type: 'success',
-                                            duration: 3000,
-                                            position: 'top'
-                                        });
-                                        const payload = {
-                                            "status": '',
-                                            "loanid": '',
-                                            "dueDatestart": '',
-                                            "dueDateend": '',
-                                            "limit": 10,
-                                            "page": 1
-                                        };
-                                        dispatch(getallpayment(payload));
-                                        navigation.goBack();
-                                    } else {
-                                        showToast({
-                                            message: response?.payload?.error || "Failed to make payment",
-                                            type: 'error',
-                                            duration: 3000,
-                                            position: 'top'
-                                        });
-                                    }
-                                });
-                            }
-                        }}
-                    >
-                        <Animated.View style={animatedButtonStyle}>
-                            <View className={`p-4 rounded-2xl ${isLoadingPayment || paymentAmount == '' || (actualStatus !== 'PAID' && !selectedMethod) ? "bg-primary-100/20" : "bg-primary-100"} flex-row items-center justify-center shadow-md`}>
-                                <Icon
-                                    name={actualStatus === 'PAID' ? 'download-outline' : 'arrow-forward-outline'}
-                                    size={20}
-                                    color="white"
-                                />
-                                <Text className="text-white font-bold text-base ml-2">
-                                    {actualStatus === 'PAID'
-                                        ? 'Download Receipt'
-                                        : actualStatus === 'OVERDUE'
-                                            ? 'Pay Overdue Amount'
-                                            : actualStatus === 'PARTIAL'
-                                                ? 'Pay Remaining Amount'
-                                                : 'Pay Now'}
+                                <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-medium text-sm`}>
+                                    {moment(singlerepaymentdetails?.payment_date).format('hh:mm A')}
                                 </Text>
                             </View>
-                        </Animated.View>
-                    </Pressable>
+                        </View>
+                    )}
                 </View>
-            </ScrollView>
 
-            {/* Full-screen loading modal */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isLoadingPayment}
-            >
-                <View className={`flex-1 justify-center items-center ${isDarkMode ? 'bg-black/70' : 'bg-black/50'}`}>
-                    <View className={`${isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'} rounded-2xl p-6 items-center shadow-lg`}>
-                        <ActivityIndicator size="large" color="#2ec4b6" />
-                        <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold text-lg mt-4`}>
-                            Sending Payment...
-                        </Text>
-                    </View>
-                </View>
-            </Modal>
-        </>
+                {/* Action Button */}
+                <Pressable
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                    disabled={isLoadingPayment || paymentAmount == '' || (actualStatus !== 'PAID' && !selectedMethod)}
+                    onPress={() => {
+                        if (actualStatus === 'PAID') {
+                            // Handle receipt download
+                            console.log('Download receipt');
+                        } else {
+                            if (!validatePaymentAmount()) return;
+
+                            const payload = {
+                                "loan_id": singlerepaymentdetails?.loan_id,
+                                "installment_number": singlerepaymentdetails?.installment_number,
+                                "amount_paid": parseFloat(paymentAmount),
+                                "payment_date": moment(new Date()).format('YYYY-MM-DD'),
+                                "notes": "Cash payment received",
+                                "payment_method": selectedMethod,
+                                "repayment_id":singlerepaymentdetails?.id
+                            };
+                            console.log('Payment payload:', payload);
+                            dispatch(updaterepaymentstatus(payload)).then((response) => {
+                                console.log(response, "response");
+                                
+                                if (response?.payload?.success) {
+                                    showToast({
+                                        message: 'Payment made Successfully!',
+                                        type: 'success',
+                                        duration: 3000,
+                                        position: 'top' // or 'bottom'
+                                    })
+                                    const payload = {
+                                        "status": '',
+                                        "loanid": '',
+                                        "dueDatestart": '',
+                                        "dueDateend": '',
+                                        "limit": 10,
+                                        "page":1
+                                    }
+                                    dispatch(getallpayment(payload));
+                                    navigation.goBack();
+                                }
+                                else {
+                                    showToast({
+                                        message: response?.payload?.error || "Failed to make payment",
+                                        type: 'error',
+                                        duration: 3000,
+                                        position: 'top' // or 'bottom'
+                                    })
+                                }
+                            })
+                        }
+                    }}
+                >
+                    <Animated.View style={animatedButtonStyle}>
+                        <View className={`p-4 rounded-2xl ${isLoadingPayment || paymentAmount == '' || (actualStatus !== 'PAID' && !selectedMethod) ? "bg-primary-100/20" : "bg-primary-100"} flex-row items-center justify-center shadow-md`}>
+                            <Icon
+                                name={actualStatus === 'PAID' ? 'download-outline' : 'arrow-forward-outline'}
+                                size={20}
+                                color="white"
+                            />
+                            <Text className="text-white font-bold text-base ml-2">
+                                {actualStatus === 'PAID'
+                                    ? 'Download Receipt'
+                                    : actualStatus === 'OVERDUE'
+                                        ? 'Pay Overdue Amount'
+                                        : actualStatus === 'PARTIAL'
+                                            ? 'Pay Remaining Amount'
+                                            : 'Pay Now'}
+                            </Text>
+                        </View>
+                    </Animated.View>
+                </Pressable>
+            </View>
+        </ScrollView >
     );
 };
 
-export default PaymentDetails;
+export default Loanpaymentgetspay;

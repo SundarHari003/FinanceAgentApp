@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Text, TouchableOpacity, Modal } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/Ionicons';
+import DatePicker from 'react-native-date-picker';
 import { useHideTabBar } from '../../hooks/useHideTabBar';
 import { useNavigation } from '@react-navigation/native';
 import { FormSection, FormInput, DocumentUploadButton } from './Components/FormComponents';
@@ -106,6 +107,99 @@ const CustomDropdown = ({ label, icon, options, value, onChange, isDarkMode, err
   );
 };
 
+const DatePickerInput = ({ label, icon, value, onChange, isDarkMode, error }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  // Initialize with a default date (18 years ago) if no value provided
+  const getInitialDate = () => {
+    if (value) {
+      const parsedDate = moment(value, 'DD-MM-YYYY');
+      return parsedDate.isValid() ? parsedDate.toDate() : new Date(new Date().setFullYear(new Date().getFullYear() - 18));
+    }
+    return new Date(new Date().setFullYear(new Date().getFullYear() - 18));
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getInitialDate);
+
+  // Calculate maximum date (18 years ago from today)
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - 18);
+
+  // Calculate minimum date (100 years ago from today)
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 100);
+
+  const handleDateConfirm = (date) => {
+    const formattedDate = moment(date).format('DD-MM-YYYY');
+    setSelectedDate(date);
+    onChange(formattedDate);
+    setIsOpen(false);
+  };
+
+  const getDisplayValue = () => {
+    if (value) {
+      return value;
+    }
+    return 'Select date of birth';
+  };
+
+  // Update selectedDate when value changes externally
+  React.useEffect(() => {
+    if (value) {
+      const parsedDate = moment(value, 'DD-MM-YYYY');
+      if (parsedDate.isValid()) {
+        setSelectedDate(parsedDate.toDate());
+      }
+    }
+  }, [value]);
+
+  return (
+    <View className="mb-4">
+      <View className="flex-row items-center mb-1">
+        <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-sm`}>
+          {label}
+        </Text>
+      </View>
+      <TouchableOpacity
+        onPress={() => setIsOpen(true)}
+        className={`flex-row items-center rounded-xl border ${error
+          ? 'bg-red-50 border-red-300'
+          : isDarkMode
+            ? 'bg-gray-700/50 border-gray-600'
+            : 'bg-gray-50/80 border-gray-200'
+          }`}
+      >
+        <View className="flex-1 py-3.5 px-4 flex-row justify-between items-center">
+          <Text className={`${error
+            ? 'text-red-900'
+            : isDarkMode ? 'text-gray-50' : 'text-gray-800'
+            } ${!value ? 'opacity-60' : ''}`}>
+            {getDisplayValue()}
+          </Text>
+          <Icon name={icon} size={20} color={error ? '#ef4444' : '#2ec4b6'} />
+        </View>
+      </TouchableOpacity>
+      {error && (
+        <Text className="text-red-500 text-xs mt-1 ml-1">{error}</Text>
+      )}
+
+      <DatePicker
+        modal
+        open={isOpen}
+        date={selectedDate}
+        mode="date"
+        maximumDate={maxDate}
+        minimumDate={minDate}
+        onConfirm={handleDateConfirm}
+        onCancel={() => setIsOpen(false)}
+        title="Select Date of Birth"
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
+    </View>
+  );
+};
+
 const CreateCustomerScreen = () => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const { isloadingcustomer } = useSelector((state) => state.customer);
@@ -159,6 +253,14 @@ const CreateCustomerScreen = () => {
     { label: 'Passport', value: 'PASSPORT' },
   ];
 
+  // Function to calculate age
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 0;
+    const today = moment();
+    const birthDate = moment(dateOfBirth, 'DD-MM-YYYY');
+    return today.diff(birthDate, 'years');
+  };
+
   const validateField = (field, value) => {
     let error = '';
 
@@ -179,7 +281,16 @@ const CreateCustomerScreen = () => {
         if (!value) error = 'Gender is required';
         break;
       case 'date_of_birth':
-        if (!value.match(/^\d{2}\-\d{2}\-\d{4}$/)) error = 'Date format: DD-MM-YYYY';
+        if (!value) {
+          error = 'Date of birth is required';
+        } else if (!value.match(/^\d{2}\-\d{2}\-\d{4}$/)) {
+          error = 'Date format: DD-MM-YYYY';
+        } else {
+          const age = calculateAge(value);
+          if (age < 18) {
+            error = 'Customer must be at least 18 years old';
+          }
+        }
         break;
       case 'address_line1':
         if (!value.trim()) error = 'Address is required';
@@ -234,7 +345,6 @@ const CreateCustomerScreen = () => {
     setIsFormValid(isValid && allDocumentsSelected);
   };
 
-
   const handleInputChange = (field, value) => {
     if (field === 'phone_number' || field === 'alternate_mobile_number') {
       if (!value.startsWith('+91') && value.length <= 10) {
@@ -253,46 +363,57 @@ const CreateCustomerScreen = () => {
   };
 
   const handleSubmit = () => {
+    // Validate form only when submit is clicked
     validateForm();
-    if (!isFormValid) {
+    
+    if (isFormValid) {
       const payload = {
         name: formData.name,
         phone_number: formData.phone_number,
         address_line1: formData.address_line1,
         district: formData.district,
-        state: formData.date_of_birth,
+        state: formData.state, // Fixed: was using date_of_birth instead of state
         city: formData.city,
         pincode: formData.pincode,
         place_name: formData.place_name,
-        identification_type: 'AADHAR',
+        identification_type: formData.identification_type, // Fixed: was hardcoded to 'AADHAR'
         identification_number: formData.identification_number,
-        email: formData.identification_number,
+        email: formData.email, // Fixed: was using identification_number instead of email
         alternate_mobile_number: formData.alternate_mobile_number,
         gender: formData.gender,
-        date_of_birth: moment(formData.date_of_birth).format("YYYY-MM-DD")
-      }
+        date_of_birth: moment(formData.date_of_birth, 'DD-MM-YYYY').format("YYYY-MM-DD"),
+        profession: formData.profession
+      };
 
       dispatch(createCustomer(payload)).then((res) => {
         if (res.payload.success) {
           showToast({
-            message: 'Customer created Succcessfully!',
+            message: 'Customer created successfully!',
             type: 'success',
             duration: 3000,
-            position: 'top' // or 'bottom'
-          })
+            position: 'top'
+          });
           navigation.goBack();
         } else {
           showToast({
-            message: res?.payload?.message || "Failed to update profile",
+            message: res?.payload?.error || res?.error?.message || "Failed to create customer",
             type: 'error',
             duration: 3000,
-            position: 'top' // or 'bottom'
-          })
+            position: 'top'
+          });
         }
-      })
-
+      });
+    } else {
+      showToast({
+        message: 'Please fill all required fields and upload all documents',
+        type: 'error',
+        duration: 3000,
+        position: 'top'
+      });
     }
   };
+
+  // Remove auto-validation - only validate on submit
 
   return (
     <SafeAreaView className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
@@ -358,12 +479,11 @@ const CreateCustomerScreen = () => {
                 isDarkMode={isDarkMode}
                 error={formErrors.gender}
               />
-              <FormInput
+              <DatePickerInput
                 label="Date of Birth"
                 icon="calendar-outline"
-                placeholder="DD/MM/YYYY"
                 value={formData.date_of_birth}
-                onChangeText={(text) => handleInputChange('date_of_birth', text)}
+                onChange={(value) => handleInputChange('date_of_birth', value)}
                 isDarkMode={isDarkMode}
                 error={formErrors.date_of_birth}
               />
@@ -536,7 +656,7 @@ const CreateCustomerScreen = () => {
             className={`mx-4 my-6 py-4 rounded-xl shadow-lg ${!isloadingcustomer ? 'bg-primary-100' : 'bg-gray-500'}`}
           >
             <Text className={`text-center font-bold text-lg ${!isloadingcustomer ? 'text-white' : 'text-gray-400'}`}>
-              Create Customer
+              {isloadingcustomer ? 'Creating Customer...' : 'Create Customer'}
             </Text>
           </TouchableOpacity>
         </ScrollView>

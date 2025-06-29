@@ -40,8 +40,8 @@ const Toast = ({
       info: {
         bg: isDarkMode ? 'bg-teal-900/90' : 'bg-teal-100',
         icon: 'information-circle',
-        iconColor: isDarkMode ? '#2dd4bf' : '#14b8a6',
-        borderColor: isDarkMode ? '#14b8a640' : '#14b8a620'
+        iconColor: isDarkMode ? '#3b82f6' : '#2563eb', // Blue shades
+          borderColor: isDarkMode ? '#3b82f640' : '#2563eb20', // Blue with opacity
       }
     };
     return types[type];

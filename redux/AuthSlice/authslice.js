@@ -21,6 +21,18 @@ export const loginAPi = createAsyncThunk(
     }
 )
 
+export const logoutAPI = createAsyncThunk(
+    "auth/logout",
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = customFetch.post('auth/logout');
+            return response;
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+)
+
 export const getAgentuserData = createAsyncThunk(
     "getuserdata/fieldagent",
     async (id, { rejectWithValue }) => {

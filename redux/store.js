@@ -15,13 +15,25 @@ const persistConfig = {
   whitelist: ['theme', 'auth'],
 }
 
-const rootReducer = combineReducers({
+// Combine reducers
+const appReducer = combineReducers({
   theme: themeReducer,
   auth: authReducer,
   payment: paymentreducer,
   customer: customerReducer,
-  loanstore:loanReducer
-})
+  loanstore: loanReducer,
+});
+
+// Root reducer to handle reset action
+const rootReducer = (state, action) => {
+  if (action.type === 'RESET_STATE') {
+    // Clear persisted state
+    AsyncStorage.removeItem('persist:root');
+    // Reset all state to initial
+    return appReducer(undefined, action);
+  }
+  return appReducer(state, action);
+};
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 

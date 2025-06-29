@@ -21,10 +21,12 @@ import CalendarPicker from 'react-native-calendar-picker';
 import { getallcustomer, getsingleCustomerdetails } from '../../redux/Slices/customerSlice';
 import { useToast } from '../../Context/ToastContext';
 import { calculateloanrepayments, createLoanforcustomer } from '../../redux/Slices/loanSlice';
+import { useHideTabBar } from '../../hooks/useHideTabBar';
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 
-const AddLoan = () => {
+const Moreloanadd = () => {
+    useHideTabBar(['addloanformultiplecustomer']);
     const navigation = useNavigation();
     const route = useRoute();
     const { showToast } = useToast();
@@ -998,4 +1000,4 @@ const AddLoan = () => {
 };
 
 
-export default AddLoan;
+export default Moreloanadd;

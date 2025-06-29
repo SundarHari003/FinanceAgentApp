@@ -25,11 +25,23 @@ export const getallpayment = createAsyncThunk(
     }
 );
 
-export const getsinglepaymentdetailapi = createAsyncThunk(
-    "getsingle/paymentdetails",
-    async (id, { rejectWithValue }) => {
+// export const getsinglepaymentdetailapi = createAsyncThunk(
+//     "getsingle/paymentdetails",
+//     async (id, { rejectWithValue }) => {
+//         try {
+//             const response = await customFetch.get(``)
+//         } catch (error) {
+//             return rejectWithValue(error.message || 'API call failed');
+//         }
+//     }
+// )
+
+export const updaterepaymentstatus = createAsyncThunk(
+    "update/repaymentstatus",
+    async (data, { rejectWithValue }) => {
         try {
-            const response = await customFetch.get(``)
+            const response = await customFetch.post(`repayments`, data);
+            return response;
         } catch (error) {
             return rejectWithValue(error.message || 'API call failed');
         }
@@ -76,6 +88,18 @@ const payment = createSlice({
 
             })
             .addCase(getallpayment.rejected, (state, action) => {
+                state.isLoadingPayment = false;
+                state.paymenterror = action.payload
+            })
+            .addCase(updaterepaymentstatus.pending, (state) => {
+                state.isLoadingPayment = true;
+                state.paymenterror = null;
+            })
+            .addCase(updaterepaymentstatus.fulfilled, (state) => {
+                state.isLoadingPayment = false;
+                state.paymenterror = null;
+            })
+            .addCase(updaterepaymentstatus.rejected, (state, action) => {
                 state.isLoadingPayment = false;
                 state.paymenterror = action.payload
             })

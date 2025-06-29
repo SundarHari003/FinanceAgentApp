@@ -4,9 +4,12 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme } from '../../redux/features/themeSlice';
+import { logoutAPI } from '../../redux/AuthSlice/authslice';
+import { persistor } from '../../redux/store';
+import { useToast } from '../../Context/ToastContext';
 
 
-const SettingToggle = ({ isDarkMode,label, value, onToggle, icon }) => (
+const SettingToggle = ({ isDarkMode, label, value, onToggle, icon }) => (
   <View className={`flex-row items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-4 rounded-xl mb-3`}>
     <View className="flex-row items-center flex-1">
       <View className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} p-2 rounded-lg`}>
@@ -53,11 +56,24 @@ const MenuLink = ({ icon, label, onPress, badgeCount }) => {
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const { user } = useSelector((state)=>state.auth)
+  const { showToast } = useToast();
+  const { user } = useSelector((state) => state.auth)
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const [notifications, setNotifications] = useState(false);
   const [biometricLock, setBiometricLock] = useState(false);
-  const userData=user?.data;
+  const userData = user?.data;
+  const handleLogout = async () => {
+    try {
+      await dispatch(logoutAPI()).unwrap(); // Unwrap to handle fulfilled/rejected
+      // On success, dispatch RESET_STATE and purge persisted state
+      dispatch({ type: 'RESET_STATE' });
+      persistor.purge(); // Clear persisted state
+      navigation.navigate('Login'); // Navigate to login screen
+    } catch (error) {
+      console.error('Logout failed:', error);
+      showToast({ message: 'Logout failed', type: 'error', duration: 3000, position: 'top' });
+    }
+  };
   return (
     <View className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* Profile Header */}
@@ -144,26 +160,26 @@ const ProfileScreen = () => {
                 value={isDarkMode}
                 onToggle={() => dispatch(toggleTheme())}
                 icon="dark-mode"
-                isDarkMode ={isDarkMode}
+                isDarkMode={isDarkMode}
               />
               <SettingToggle
                 label="Push Notifications"
                 value={notifications}
                 onToggle={setNotifications}
                 icon="notifications"
-                isDarkMode ={isDarkMode}
+                isDarkMode={isDarkMode}
               />
               <SettingToggle
                 label="Biometric Lock"
                 value={biometricLock}
                 onToggle={setBiometricLock}
                 icon="fingerprint"
-                isDarkMode ={isDarkMode}
+                isDarkMode={isDarkMode}
               />
 
               <TouchableOpacity
                 className={`${isDarkMode && " bg-red-600"} flex-row items-center justify-center mt-4 py-3.5 rounded-xl border ${isDarkMode ? "border-red-500 " : " border-red-200"}`}
-                onPress={() => {/* Add logout logic */ }}
+                onPress={() => { handleLogout() }}
               >
                 <Icon name="logout" size={20} color={isDarkMode ? "#fff" : "#ef4444"} />
                 <Text className={`${isDarkMode ? " text-white" : "text-red-500"} font-medium ml-2`}>Sign Out</Text>

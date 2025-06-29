@@ -10,8 +10,8 @@ import {
   ScrollView
 } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import Icons from 'react-native-vector-icons/FontAwesome5'
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
+import Icons from 'react-native-vector-icons/FontAwesome5';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Animated, {
@@ -136,12 +136,14 @@ const LoginScreen = () => {
     }
     dispatch(loginAPi(options)).then((response) => {
       setloginloading(false)
+      console.log(response, "response");
+      
       if (response?.payload?.success) {
         showToast({
           message: 'Login successful!',
           type: 'success',
           duration: 3000,
-          position: 'top' // or 'bottom'
+          position: 'top'
         });
         setError({
           email: false,
@@ -154,10 +156,10 @@ const LoginScreen = () => {
       }
       else {
         showToast({
-          message: response.message || 'Login failed. Please try again.',
+          message: response.payload.error || 'Login failed. Please try again.',
           type: 'error',
           duration: 3000,
-          position: 'top' // or 'bottom'
+          position: 'top'
         });
         setError({
           email: true,
@@ -212,7 +214,7 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1"
+      className="flex-1 w-full"
     >
       <StatusBar barStyle="light-content" backgroundColor="#1a9c94" />
 
@@ -221,10 +223,10 @@ const LoginScreen = () => {
         colors={['#1a9c94', '#14b8a6']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="flex-1"
+        className="flex-1 w-full"
       >
         {/* Dynamic Background Elements */}
-        <View className="absolute inset-0">
+        <View className="absolute inset-0 w-full">
           {/* Floating financial cards */}
           <Animated.View
             className="absolute top-20 right-8 w-16 h-10 bg-white/10 rounded-lg border border-white/20"
@@ -240,26 +242,26 @@ const LoginScreen = () => {
           />
 
           {/* Gradient overlay */}
-          <Animated.View style={gradientAnimatedStyle}>
+          <Animated.View style={gradientAnimatedStyle} className="w-full">
             <LinearGradient
               colors={['rgba(15, 118, 110, 0.1)', 'transparent']}
-              className="absolute inset-0"
+              className="absolute inset-0 w-full"
             />
           </Animated.View>
-
 
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            scrollEnabled={false} // Disable scrolling to prevent conflicts with keyboard
+            scrollEnabled={false}
+            className="w-full"
           >
             <Animated.View
-              className="flex-1 pt-16 pb-8"
+              className="flex-1 pt-16 pb-8 w-full"
               style={containerAnimatedStyle}
             >
               {/* Enhanced Logo Section */}
-              <View className="items-center mb-8">
+              <View className="items-center mb-8 w-full">
                 <Animated.View
                   className="relative mb-6"
                   style={logoAnimatedStyle}
@@ -275,7 +277,7 @@ const LoginScreen = () => {
                     colors={['#ffffff', '#f8fafc']}
                     className="w-24 h-24 rounded-full items-center justify-center shadow-2xl elevation-12 border-4 border-white/30"
                   >
-                    <VectorIcon name="hand-holding-usd" size={36} color="#0f766e" />
+                    <Icons name="hand-holding-usd" size={36} color="#0f766e" />
                   </LinearGradient>
                 </Animated.View>
 
@@ -291,10 +293,10 @@ const LoginScreen = () => {
 
               {/* Enhanced Login Form */}
               <Animated.View
-                className="mx-6"
+                className="w-full px-4"
                 style={formAnimatedStyle}
               >
-                <View className="bg-white/95 backdrop-blur-lg p-8 rounded-3xl shadow-2xl elevation-20 border border-white/20">
+                <View className="bg-white/95 backdrop-blur-lg p-8 rounded-3xl shadow-2xl elevation-20 border border-white/20 w-full">
                   {/* Header */}
                   <View className="text-center mb-8">
                     <Text className="text-3xl font-bold text-gray-800 mb-2">
@@ -306,14 +308,14 @@ const LoginScreen = () => {
                   </View>
 
                   {/* Form Fields */}
-                  <View className="space-y-6 flex-col gap-y-4">
+                  <View className="space-y-6 flex-col gap-y-4 w-full">
                     {/* Email Input with enhanced styling */}
-                    <View>
+                    <View className="w-full">
                       <Text className="text-gray-700 text-sm font-semibold mb-2 ml-1">
                         Email Address
                       </Text>
-                      <View className="relative">
-                        <View className="absolute left-4 top-5 z-10">
+                      <View className="relative w-full">
+                        <View className="absolute left-4 top-6 z-10">
                           <VectorIcon name="envelope" size={18} color={focusedInput === 'email' ? '#0f766e' : '#9CA3AF'} />
                         </View>
                         <TextInput
@@ -338,12 +340,12 @@ const LoginScreen = () => {
                     </View>
 
                     {/* Password Input with enhanced styling */}
-                    <View>
+                    <View className="w-full">
                       <Text className="text-gray-700 text-sm font-semibold mb-2 ml-1">
                         Password
                       </Text>
-                      <View className="relative">
-                        <View className="absolute left-4 top-5 z-10">
+                      <View className="relative w-full">
+                        <View className="absolute left-4 top-6 z-10">
                           <VectorIcon name="lock" size={18} color={focusedInput === 'password' ? '#0f766e' : '#9CA3AF'} />
                         </View>
                         <TextInput
@@ -365,7 +367,7 @@ const LoginScreen = () => {
                         />
                         <TouchableOpacity
                           onPress={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-[14px] p-1"
+                          className="absolute right-4 top-[18px] p-1"
                         >
                           <VectorIcon
                             name={showPassword ? "visibility" : "visibility-off"}
@@ -385,7 +387,7 @@ const LoginScreen = () => {
                     </TouchableOpacity>
 
                     {/* Enhanced Login Button */}
-                    <Animated.View style={buttonAnimatedStyle} className="mt-2">
+                    <Animated.View style={buttonAnimatedStyle} className="mt-2 w-full">
                       <TouchableOpacity
                         onPress={handleLogin}
                         disabled={!email || !password || loginloading}
@@ -395,12 +397,12 @@ const LoginScreen = () => {
                           colors={['#0f766e', '#14b8a6', '#0d9488']}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 0 }}
-                          className="py-5 rounded-2xl"
+                          className="py-5 rounded-2xl w-full"
                         >
                           {/* Button glow effect */}
                           <LinearGradient
                             colors={['rgba(255, 255, 255, 0.1)', 'transparent']}
-                            className="absolute inset-0 rounded-2xl"
+                            className="absolute inset-0 rounded-2xl w-full"
                           />
 
                           <View className="flex-row items-center justify-center relative z-10">
@@ -423,8 +425,8 @@ const LoginScreen = () => {
                 </View>
 
                 {/* Enhanced Footer */}
-                <View className="items-center mt-8 px-4">
-                  <View className="flex-row items-center">
+                <View className="items-center mt-8 px-4 w-full">
+                  <View className="flex-row items-center w-full">
                     <View className="flex-1 h-px bg-white/30" />
                     <Text className="mx-4 text-white/80 text-sm">Need Help?</Text>
                     <View className="flex-1 h-px bg-white/30" />
