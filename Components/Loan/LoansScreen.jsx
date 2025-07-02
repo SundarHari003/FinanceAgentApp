@@ -19,7 +19,7 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { gellloandataapi } from '../../redux/Slices/loanSlice';
 import LoanItem from './LoanItem';
@@ -143,6 +143,27 @@ const LoansScreen = () => {
   const scrollIndicatorOpacity = useSharedValue(0);
   const scrollIndicatorScale = useSharedValue(0.8);
 
+  // Close dropdowns when screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // This runs when the screen loses focus
+        if (showStatusDropdown) {
+          statusDropdownHeight.value = withTiming(0, { duration: 200 });
+          statusDropdownOpacity.value = withTiming(0, { duration: 200 }, () => {
+            runOnJS(setShowStatusDropdown)(false);
+          });
+        }
+        if (showFrequencyDropdown) {
+          frequencyDropdownHeight.value = withTiming(0, { duration: 200 });
+          frequencyDropdownOpacity.value = withTiming(0, { duration: 200 }, () => {
+            runOnJS(setShowFrequencyDropdown)(false);
+          });
+        }
+      };
+    }, [showStatusDropdown, showFrequencyDropdown])
+  );
+
   const scrollIndicatorStyle = useAnimatedStyle(() => ({
     opacity: scrollIndicatorOpacity.value,
     transform: [
@@ -246,6 +267,12 @@ const LoansScreen = () => {
         runOnJS(setShowStatusDropdown)(false);
       });
     } else {
+      // Immediately close frequency dropdown if open
+      if (showFrequencyDropdown) {
+        frequencyDropdownHeight.value = 0;
+        frequencyDropdownOpacity.value = 0;
+        setShowFrequencyDropdown(false);
+      }
       setShowStatusDropdown(true);
       statusDropdownHeight.value = withSpring(180,{
         damping: 15,
@@ -265,6 +292,12 @@ const LoansScreen = () => {
         runOnJS(setShowFrequencyDropdown)(false);
       });
     } else {
+      // Immediately close status dropdown if open
+      if (showStatusDropdown) {
+        statusDropdownHeight.value = 0;
+        statusDropdownOpacity.value = 0;
+        setShowStatusDropdown(false);
+      }
       setShowFrequencyDropdown(true);
       frequencyDropdownHeight.value = withSpring(225,{
         damping: 15,
@@ -278,6 +311,9 @@ const LoansScreen = () => {
   };
 
   const handleRetry = () => {
+    setFrequencyFilter('');
+    setSearchQuery('');
+    setStatusFilter('');
     setPage(1);
     fetchLoans();
   }
@@ -306,6 +342,8 @@ const LoansScreen = () => {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
   };
+
+
 
 
   return (
@@ -376,7 +414,7 @@ const LoansScreen = () => {
                   <TouchableOpacity
                     key={option.value}
                     onPress={() => handleStatusSelect(option.value)}
-                    className={`px-4 py-3.5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} ${statusFilter === option.value ? 'bg-primary-100/20' : ''}`}
+                    className={`px-4 py-3.5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} ${statusFilter === option.value ? (isDarkMode ? 'bg-primary-100/20' : 'bg-primary-100/10') : ''}`}
                   >
                     <Text className={`font-medium ${statusFilter === option.value ? 'text-primary-100' : (isDarkMode ? 'text-gray-300' : 'text-gray-700')}`}>
                       {option.label}
@@ -415,7 +453,7 @@ const LoansScreen = () => {
                   <TouchableOpacity
                     key={option.value}
                     onPress={() => handleFrequencySelect(option.value)}
-                    className={`px-4 py-3.5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} ${frequencyFilter === option.value ? 'bg-primary-100/20' : ''}`}
+                    className={`px-4 py-3.5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} ${frequencyFilter === option.value ? (isDarkMode ? 'bg-primary-100/20' : 'bg-primary-100/10') : ''}`}
                   >
                     <Text className={`font-medium ${frequencyFilter === option.value ? 'text-primary-100' : (isDarkMode ? 'text-gray-300' : 'text-gray-700')}`}>
                       {option.label}
@@ -458,7 +496,7 @@ const LoansScreen = () => {
           )
             : (
               <View className=" relative">
-                <Animated.View
+                {showScrollToTop && <Animated.View
                   style={[scrollIndicatorStyle]}
                   className='absolute z-50 w-full flex-row justify-center top-2'
                   pointerEvents={showScrollToTop ? 'auto' : 'none'}
@@ -477,7 +515,7 @@ const LoansScreen = () => {
                     <Icon name="keyboard-arrow-up" size={16} color="#fff" />
                     <Text className='text-white text-sm font-medium'>{`Back to Top ${Allloanhistory?.length || 0} / ${totalLoans}`}</Text>
                   </TouchableOpacity>
-                </Animated.View>
+                </Animated.View>}
                 <FlatList
                   ref={flatListRef}
                   onScroll={handleScroll}

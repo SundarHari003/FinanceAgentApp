@@ -613,7 +613,7 @@ const PaymentsScreen = () => {
           </View>
         ) : (
           <View className='relative mb-8'>
-            <Animated.View
+            {showScrollToTop && <Animated.View
               style={[scrollIndicatorStyle]}
               className='absolute z-50 w-full flex-row justify-center top-2'
               pointerEvents={showScrollToTop ? 'auto' : 'none'}
@@ -632,7 +632,7 @@ const PaymentsScreen = () => {
                 <Icon name="keyboard-arrow-up" size={16} color="#fff" />
                 <Text className='text-white text-sm font-medium'>{`Back to Top ${Allpaymenthistory.length || 0} / ${totalPayments}`}</Text>
               </TouchableOpacity>
-            </Animated.View>
+            </Animated.View>}
             <FlatList
               ref={flatListRef}
               data={Allpaymenthistory}

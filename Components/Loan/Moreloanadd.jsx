@@ -789,6 +789,7 @@ const Moreloanadd = () => {
                 visible={showDurationDropdown}
                 transparent
                 animationType="fade"
+                statusBarTranslucent={true}
                 onRequestClose={() => setShowDurationDropdown(false)}
             >
                 <TouchableOpacity
@@ -832,6 +833,7 @@ const Moreloanadd = () => {
                 transparent
                 animationType="none"
                 onRequestClose={closeBottomSheet}
+                statusBarTranslucent={true}
             >
                 <View style={{ flex: 1 }}>
                     <Animated.View

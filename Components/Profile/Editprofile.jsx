@@ -10,7 +10,7 @@ import { useToast } from '../../Context/ToastContext';
 import API_URL from '../../redux/BaseUrl/baseurl';
 import profiledummy from '../../assests/agent-avatar.png';
 import { getAgentuserData, updateAgentuserData } from '../../redux/AuthSlice/authslice';
-
+import ImagePicker from 'react-native-image-crop-picker';
 const Editprofile = () => {
   const navigation = useNavigation();
   const { user } = useSelector((state) => state.auth);
@@ -62,8 +62,8 @@ const Editprofile = () => {
   // Validation functions
   const validateField = (field, value) => {
     let error = '';
-    
-    switch(field) {
+
+    switch (field) {
       case 'email':
         if (!value.trim()) error = 'Email is required';
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Invalid email format';
@@ -156,7 +156,7 @@ const Editprofile = () => {
   };
 
   const hasChanges = () => {
-    return Object.keys(formData).some(key => 
+    return Object.keys(formData).some(key =>
       formData[key] !== (userData?.[key] || '')
     );
   };
@@ -206,22 +206,47 @@ const Editprofile = () => {
     </LinearGradient>
   );
 
-  const ProfileImage = () => (
-    <View className={`${isDarkMode ? 'bg-gray-800/90' : 'bg-gray-200'} p-6 rounded-2xl shadow-sm my-6 items-center`}>
-      <TouchableOpacity>
-        <Image
-          source={profiledummy}
-          className="w-32 h-32 rounded-full border-4 border-white shadow-lg"
-        />
-      </TouchableOpacity>
-      {isEditMode && (
-        <TouchableOpacity className="flex-row items-center bg-primary-100/10 px-4 py-2 rounded-full mt-3">
-          <Icon name="photo-camera" size={18} color="#2ec4b6" />
-          <Text className="text-primary-100 font-medium ml-2">Change Photo</Text>
+  const ProfileImage = () => {
+    const [selectedImage, setSelectedImage] = useState(null);
+
+    const pickImage = async () => {
+      try {
+        const image = await ImagePicker.openPicker({
+          width: 300,
+          height: 300,
+          cropping: true,
+          compressImageQuality: 0.8,
+          mediaType: 'photo',
+        });
+        setSelectedImage({ uri: image.path });
+      } catch (error) {
+        if (error.code !== 'E_PICKER_CANCELLED') {
+          Alert.alert('Error', 'Failed to pick image.');
+          console.error(error);
+        }
+      }
+    };
+    return (
+      <View className={`${isDarkMode ? 'bg-gray-800/90' : 'bg-gray-200'} p-6 rounded-2xl shadow-sm my-6 items-center`}>
+        <TouchableOpacity>
+          <Image
+            source={selectedImage ? selectedImage : profiledummy}
+            className="w-32 h-32 rounded-full border-4 border-white shadow-lg"
+          />
         </TouchableOpacity>
-      )}
-    </View>
-  );
+
+        {isEditMode && (
+          <TouchableOpacity
+            onPress={pickImage}
+            className="flex-row items-center bg-primary-100/10 px-4 py-2 rounded-full mt-3"
+          >
+            <Icon name="photo-camera" size={18} color="#2ec4b6" />
+            <Text className="text-primary-100 font-medium ml-2">Change Photo</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   const SectionSelector = () => (
     <View className={`flex-row justify-between mb-6 p-1 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
@@ -258,14 +283,14 @@ const Editprofile = () => {
           </Text>
           {required && <Text className="text-red-500 ml-1">*</Text>}
         </View>
-        
+
         <View className={`flex-row items-center rounded-xl border ${error ? 'border-red-400' : (isDarkMode ? 'border-gray-600' : 'border-gray-200')} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
           {icon && (
             <View className="pl-4">
               <Icon name={icon} size={20} color={error ? '#ef4444' : '#2ec4b6'} />
             </View>
           )}
-          
+
           {type === 'textarea' ? (
             <TextInput
               {...inputProps}
@@ -281,7 +306,7 @@ const Editprofile = () => {
             />
           )}
         </View>
-        
+
         {error && (
           <Text className="text-red-500 text-xs mt-1">{error}</Text>
         )}
@@ -308,7 +333,7 @@ const Editprofile = () => {
           </Text>
           <Text className="text-red-500 ml-1">*</Text>
         </View>
-        
+
         <TouchableOpacity
           onPress={() => setShowPicker(true)}
           className={`flex-row items-center rounded-xl border ${error ? 'border-red-400' : (isDarkMode ? 'border-gray-600' : 'border-gray-200')} ${isDarkMode ? 'bg-gray-800' : 'bg-white'} py-3 px-4`}
@@ -319,11 +344,11 @@ const Editprofile = () => {
           </Text>
           <Icon name="arrow-drop-down" size={24} color={isDarkMode ? '#9ca3af' : '#6b7280'} />
         </TouchableOpacity>
-        
+
         {error && (
           <Text className="text-red-500 text-xs mt-1">{error}</Text>
         )}
-        
+
         <Modal
           visible={showPicker}
           transparent
@@ -339,7 +364,7 @@ const Editprofile = () => {
               <Text className={`text-lg font-bold p-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 Select Gender
               </Text>
-              
+
               {genderOptions.map(option => (
                 <TouchableOpacity
                   key={option.value}
@@ -362,14 +387,14 @@ const Editprofile = () => {
   };
 
   const PersonalInfoSection = () => (
-    <Animated.View 
+    <Animated.View
       // style={{ transform: [{ translateX: slideAnim }] }}
       className={`p-6 rounded-2xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}
     >
       <Text className={`text-lg font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
         Personal Information
       </Text>
-      
+
       {isEditMode ? (
         <>
           <InputField
@@ -380,7 +405,7 @@ const Editprofile = () => {
             error={errors.fullName}
             required
           />
-          
+
           <InputField
             label="Email"
             value={formData.email}
@@ -390,7 +415,7 @@ const Editprofile = () => {
             error={errors.email}
             required
           />
-          
+
           <InputField
             label="Phone Number"
             value={formData.phone}
@@ -400,7 +425,7 @@ const Editprofile = () => {
             error={errors.phone}
             required
           />
-          
+
           <InputField
             label="Address"
             value={formData.address}
@@ -410,7 +435,7 @@ const Editprofile = () => {
             error={errors.address}
             required
           />
-          
+
           <InputField
             label="State"
             value={formData.state}
@@ -419,7 +444,7 @@ const Editprofile = () => {
             error={errors.state}
             required
           />
-          
+
           <InputField
             label="District"
             value={formData.district}
@@ -428,7 +453,7 @@ const Editprofile = () => {
             error={errors.district}
             required
           />
-          
+
           <GenderSelector
             value={formData.gender}
             onChange={(value) => handleFieldChange('gender', value)}
@@ -441,32 +466,32 @@ const Editprofile = () => {
             <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Full Name</Text>
             <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>{formData.fullName}</Text>
           </View>
-          
+
           <View className="mb-5">
             <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Email</Text>
             <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>{formData.email}</Text>
           </View>
-          
+
           <View className="mb-5">
             <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Phone Number</Text>
             <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>{formData.phone}</Text>
           </View>
-          
+
           <View className="mb-5">
             <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Address</Text>
             <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>{formData.address}</Text>
           </View>
-          
+
           <View className="mb-5">
             <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>State</Text>
             <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>{formData.state}</Text>
           </View>
-          
+
           <View className="mb-5">
             <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>District</Text>
             <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>{formData.district}</Text>
           </View>
-          
+
           <View className="mb-5">
             <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Gender</Text>
             <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>
@@ -479,45 +504,45 @@ const Editprofile = () => {
   );
 
   const ProfessionalInfoSection = () => (
-    <Animated.View 
+    <Animated.View
       // style={{ transform: [{ translateX: slideAnim }] }}
       className={`p-6 rounded-2xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}
     >
       <Text className={`text-lg font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
         Professional Information
       </Text>
-      
+
       <View className="mb-5">
         <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Username</Text>
         <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>{userData?.username}</Text>
       </View>
-      
+
       <View className="mb-5">
         <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Role</Text>
         <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>{userData?.role}</Text>
       </View>
-      
+
       <View className="mb-5">
         <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Department</Text>
         <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>
           {userData?.department || "Field operations"}
         </Text>
       </View>
-      
+
       <View className="mb-5">
         <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Branch</Text>
         <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>
           {userData?.branch || "Anna angar"}
         </Text>
       </View>
-      
+
       <View className="mb-5">
         <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Join Date</Text>
         <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>
           {userData?.joinDate || "15 Jan 2023"}
         </Text>
       </View>
-      
+
       <View className="mb-5">
         <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mb-1`}>Assigned Manager</Text>
         <Text className={`${isDarkMode ? 'text-white' : 'text-gray-800'} text-base`}>
@@ -559,7 +584,7 @@ const Editprofile = () => {
     ];
 
     return (
-      <Animated.View 
+      <Animated.View
         // style={{ transform: [{ translateX: slideAnim }] }}
         className={`p-6 rounded-2xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}
       >
@@ -574,7 +599,7 @@ const Editprofile = () => {
             </TouchableOpacity>
           )}
         </View>
-        
+
         {documents.map(doc => (
           <View key={doc.id} className={`mb-4 p-4 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
             <View className="flex-row items-center justify-between mb-2">
@@ -591,17 +616,17 @@ const Editprofile = () => {
                   </Text>
                 </View>
               </View>
-              <View className={`px-2 py-1 rounded-full ${doc.status === 'verified' ? 
-                (isDarkMode ? 'bg-green-900/30' : 'bg-green-100') : 
+              <View className={`px-2 py-1 rounded-full ${doc.status === 'verified' ?
+                (isDarkMode ? 'bg-green-900/30' : 'bg-green-100') :
                 (isDarkMode ? 'bg-yellow-900/30' : 'bg-yellow-100')}`}>
-                <Text className={`text-xs ${doc.status === 'verified' ? 
-                  (isDarkMode ? 'text-green-400' : 'text-green-700') : 
+                <Text className={`text-xs ${doc.status === 'verified' ?
+                  (isDarkMode ? 'text-green-400' : 'text-green-700') :
                   (isDarkMode ? 'text-yellow-400' : 'text-yellow-700')}`}>
                   {doc.status.toUpperCase()}
                 </Text>
               </View>
             </View>
-            
+
             <View className={`flex-row justify-between items-center pt-3 mt-2 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
               <Text className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Uploaded: {doc.uploadDate}
@@ -639,7 +664,7 @@ const Editprofile = () => {
               Are you sure you want to save these changes to your profile?
             </Text>
           </View>
-          
+
           <View className="flex-row gap-4">
             <TouchableOpacity
               onPress={() => setShowConfirmation(false)}
@@ -664,15 +689,15 @@ const Editprofile = () => {
   return (
     <Animated.View style={{ opacity: fadeAnim }} className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       <ProfileHeader />
-      
+
       <ScrollView className="flex-1 px-4 mb-4" showsVerticalScrollIndicator={false}>
         <ProfileImage />
         <SectionSelector />
-        
+
         {activeSection === 'personal' && <PersonalInfoSection />}
         {activeSection === 'professional' && <ProfessionalInfoSection />}
         {activeSection === 'documents' && <DocumentsSection />}
-        
+
         {isEditMode && (
           <View className="flex-row gap-4 my-6">
             <TouchableOpacity
@@ -695,7 +720,7 @@ const Editprofile = () => {
           </View>
         )}
       </ScrollView>
-      
+
       <ConfirmationModal />
     </Animated.View>
   );

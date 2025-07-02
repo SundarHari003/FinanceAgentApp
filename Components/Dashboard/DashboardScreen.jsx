@@ -124,6 +124,9 @@ const DashboardScreen = () => {
       <LinearGradient
         colors={['#1a9c94', '#14b8a6']}
         className="px-6 pt-8 pb-10 rounded-b-3xl"
+        style={{ 
+          borderRadius: 20,
+         }}
       >
         <View className="flex-row items-center justify-between mb-8">
           <View>
@@ -162,7 +165,7 @@ const DashboardScreen = () => {
 
       <Animated.ScrollView
         style={contentAnimatedStyle}
-        className="flex-1 px-4 -mt-8"
+        className="flex-1 px-4 -mt-10"
         contentContainerStyle={{ paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}

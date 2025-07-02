@@ -157,7 +157,7 @@ const LoanDetailsScreen = ({ route }) => {
           </TouchableOpacity>
           <View>
             <Text className="text-white text-2xl font-bold">Loan Details</Text>
-            {OneLoanDetails?.customer?.name && (
+            {OneLoanDetails?.customer?.name&&!newError && (
               <Text className="text-white/70">
                 {OneLoanDetails?.customer?.name || 'Loading...'}
               </Text>
@@ -165,7 +165,7 @@ const LoanDetailsScreen = ({ route }) => {
           </View>
         </View>
 
-        {loan?.interest_rate && <View className="bg-white/20 rounded-2xl p-4 mb-4">
+        {loan?.interest_rate && !newError && !isLoadingLoan && <View className="bg-white/20 rounded-2xl p-4 mb-4">
           <Text className="text-white/80 text-sm mb-1">Loan Amount</Text>
           <Text className="text-white text-3xl font-bold">
             ₹{loan?.principal_amount.toLocaleString()}

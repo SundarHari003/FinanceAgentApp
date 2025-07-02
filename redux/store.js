@@ -7,7 +7,7 @@ import customerReducer from './Slices/customerSlice'
 import loanReducer from './Slices/loanSlice'
 import { persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import fileReducer from './Slices/fileSlice';
 //persist config
 const persistConfig = {
   key: 'root',
@@ -22,6 +22,7 @@ const appReducer = combineReducers({
   payment: paymentreducer,
   customer: customerReducer,
   loanstore: loanReducer,
+  filedata: fileReducer
 });
 
 // Root reducer to handle reset action

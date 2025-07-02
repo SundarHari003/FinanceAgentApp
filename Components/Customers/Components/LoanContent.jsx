@@ -9,12 +9,13 @@ import {
   Animated,
   Dimensions,
   PanResponder,
-  FlatList
+  FlatList,
+  StatusBar
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { singleLoanRepaymentsAPI } from '../../../redux/Slices/loanSlice';
+import { getsingleloanapi, singleLoanRepaymentsAPI } from '../../../redux/Slices/loanSlice';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;
@@ -289,8 +290,8 @@ const LoanContent = () => {
   const BottomSheet = () => {
     const currentData =
       sheetType === 'paid' ? paidterms :
-      sheetType === 'pending' ? pendingterms :
-      sheetType === 'partial' ? partialterms : [];
+        sheetType === 'pending' ? pendingterms :
+          sheetType === 'partial' ? partialterms : [];
 
     console.log('Rendering bottom sheet with data:', currentData);
 
@@ -299,8 +300,10 @@ const LoanContent = () => {
         visible={bottomSheetVisible}
         transparent
         animationType="none"
+        statusBarTranslucent={true}
         onRequestClose={closeBottomSheet}
       >
+        <StatusBar hidden={true} />
         <View style={{ flex: 1 }}>
           <Animated.View
             style={{
@@ -604,7 +607,10 @@ const LoanContent = () => {
                 {pastLoans.map((loan, index) => (
                   <TouchableOpacity
                     key={index}
-                    onPress={() => navigation.navigate('Loandetails', { loanId: loan.id })}
+                    onPress={() => {
+                      navigation.navigate('Loandetails', { loanId: loan?.id });
+                      dispatch(getsingleloanapi(loan?.id));
+                    }}
                   >
                     <View className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-2xl`}>
                       <View className="flex-row justify-between items-center mb-3">

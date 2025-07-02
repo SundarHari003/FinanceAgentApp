@@ -5,7 +5,8 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  interpolate
+  interpolate,
+  runOnJS
 } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -220,6 +221,8 @@ const CustomersScreen = () => {
   const statusDropdownOpacity = useSharedValue(0);
   const sortDropdownOpacity = useSharedValue(0);
 
+ 
+
   const fetchCustomer = async (pageNum = 1, isRefresh = false, isLoadMore = false) => {
     try {
       if (isLoadMore) {
@@ -263,6 +266,9 @@ const CustomersScreen = () => {
 
   // Retry handler for error state
   const handleRetry = useCallback(() => {
+    setSearchQuery('');
+    setSelectedStatus('All');
+    setSelectedSort('Newest');
     setCurrentPage(1);
     dispatch(getallcustomer({ "page": 1, "search": searchQuery || '' }));
   }, [dispatch]);
@@ -439,7 +445,13 @@ const CustomersScreen = () => {
       }
       return () => {
         scrollToTop();
-        console.log('cleanup if needed');
+        // Instantly close both dropdowns on screen blur
+        statusDropdownHeight.value = 0;
+        statusDropdownOpacity.value = 0;
+        sortDropdownHeight.value = 0;
+        sortDropdownOpacity.value = 0;
+        runOnJS(setShowStatusDropdown)(false);
+        runOnJS(setShowSortDropdown)(false);
       };
     }, [])
   );
@@ -540,6 +552,7 @@ const CustomersScreen = () => {
                 key={status}
                 onPress={() => {
                   setSelectedStatus(status);
+                  setShowScrollToTop(false);
                   toggleStatusDropdown();
                 }}
                 className={`px-4 py-3.5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'
@@ -603,7 +616,7 @@ const CustomersScreen = () => {
         ) : (
           <View className='relative'>
             {/* Back to Top Button - Fixed positioning */}
-            <Animated.View
+           {showScrollToTop && <Animated.View
               style={[scrollIndicatorStyle]}
               className='absolute z-50 w-full flex-row justify-center top-2'
               pointerEvents={showScrollToTop ? 'auto' : 'none'}
@@ -624,7 +637,7 @@ const CustomersScreen = () => {
                   {`Back to Top ${CustomerByagent.length || 0} / ${totalCustomer}`}
                 </Text>
               </TouchableOpacity>
-            </Animated.View>
+            </Animated.View>}
 
             {/* FlatList with scroll handler */}
             <FlatList

@@ -21,6 +21,7 @@ import HistoryContent from './Components/HistoryContent';
 import DocumentsContent from './Components/DocumentsContent';
 import { clearsinglecustomerdetails, getsingleCustomerdetails } from '../../redux/Slices/customerSlice';
 import { clearsingleloadnrepayments } from '../../redux/Slices/loanSlice';
+import { getCustomerFiles } from '../../redux/Slices/fileSlice';
 
 const CustomerDetailsScreen = ({ route }) => {
   const cust_id = route.params?.id;
@@ -31,7 +32,7 @@ const CustomerDetailsScreen = ({ route }) => {
   const [isReady, setIsReady] = useState(false);
   useHideTabBar(['Customerdetails', 'Loandetails', 'editcustomer', 'addloan']);
   const dispatch = useDispatch();
-  
+
   const tabs = [
     { id: 'overview', title: 'Overview', icon: 'grid-outline' },
     { id: 'loan', title: 'Loan Details', icon: 'wallet-outline' },
@@ -46,14 +47,15 @@ const CustomerDetailsScreen = ({ route }) => {
     });
   }, []);
 
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     return () => {
-  //       dispatch(clearsinglecustomerdetails());
-  //       dispatch(clearsingleloadnrepayments());
-  //     }
-  //   }, [])
-  // );
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getCustomerFiles({ id: cust_id, file_type: '' }));
+      return () => {
+        // dispatch(clearsinglecustomerdetails());
+        // dispatch(clearsingleloadnrepayments());
+      }
+    }, [])
+  );
 
   const handleRetry = () => {
     dispatch(getsingleCustomerdetails(cust_id));
@@ -85,15 +87,15 @@ const CustomerDetailsScreen = ({ route }) => {
                 color={isDarkMode ? '#ef4444' : '#dc2626'}
               />
             </View>
-            
+
             <Text className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Unable to Load Customer
             </Text>
-            
+
             <Text className={`text-center mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               We couldn't retrieve the customer details. Please check your connection and try again.
             </Text>
-            
+
             <TouchableOpacity
               onPress={handleRetry}
               className="bg-primary-100 px-6 py-3 rounded-xl flex-row items-center"
@@ -164,7 +166,7 @@ const CustomerDetailsScreen = ({ route }) => {
         {activeTab === 'loan' && <LoanContent />}
         {activeTab === 'profile' && <ProfileContent />}
         {activeTab === 'history' && <HistoryContent />}
-        {activeTab === 'documents' && <DocumentsContent />}
+        {activeTab === 'documents' && <DocumentsContent customer_id={getsinglecustomerdetailsData?.data?.id} />}
       </ScrollView>
     </SafeAreaView>
   );

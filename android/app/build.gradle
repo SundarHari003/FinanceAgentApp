@@ -76,7 +76,7 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
-
+compileSdkVersion = 35
     namespace "com.finance"
     defaultConfig {
         applicationId "com.finance"
@@ -84,6 +84,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+          targetSdkVersion = 35
     }
     signingConfigs {
         debug {
