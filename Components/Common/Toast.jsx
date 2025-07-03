@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    [position]: 16,
+    [position]: 30,
     zIndex: 9999,
     width: '100%',
     maxWidth: width - 32,

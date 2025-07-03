@@ -1,11 +1,11 @@
 // components/CustomerDetails/DocumentCard.js
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Modal, 
-  Dimensions, 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  Dimensions,
   ActivityIndicator,
   ScrollView,
   Alert,
@@ -16,8 +16,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import CustomAlert from '../../Common/CustomAlert';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToast } from '../../../Context/ToastContext';
-import { 
-  getsinglefileDownlaod, 
+import {
+  getsinglefileDownlaod,
   clearSingleFileData,
   deleteCustomerFile,
   getCustomerFiles
@@ -30,14 +30,15 @@ const DocumentCard = ({ document, isDarkMode }) => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isdeleting, setIsDeleting] = useState(false);
   const [webViewLoading, setWebViewLoading] = useState(true);
-
-  const { 
-    getsinglefile, 
-    getsinglefileDownlaoderror, 
+  const [selectedDocType, setSelectedDocType] = useState(null);
+  const {
+    getsinglefile,
+    getsinglefileDownlaoderror,
     getsinglefileDownlaodloading,
   } = useSelector(state => state.filedata);
-  
+
   const { showToast } = useToast();
   const dispatch = useDispatch();
 
@@ -65,7 +66,7 @@ const DocumentCard = ({ document, isDarkMode }) => {
       case 'ID_DOCUMENT':
         return 'ID Document';
       case 'DOCUMENT':
-        return originalName || 'Document';
+        return 'Document';
       default:
         return originalName || 'Unknown Document';
     }
@@ -83,16 +84,16 @@ const DocumentCard = ({ document, isDarkMode }) => {
   // Check if file is an image
   const isImageFile = (fileName) => {
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
-    return imageExtensions.some(ext => 
-      fileName?.toLowerCase().includes(ext) || 
+    return imageExtensions.some(ext =>
+      fileName?.toLowerCase().includes(ext) ||
       document.file_type === 'PROFILE_PHOTO'
     );
   };
 
   // Check if file is a PDF
   const isPdfFile = (fileName) => {
-    return fileName?.toLowerCase().includes('.pdf') || 
-           document.content_type?.includes('pdf');
+    return fileName?.toLowerCase().includes('.pdf') ||
+      document.content_type?.includes('pdf');
   };
 
   // Handle file preview
@@ -100,12 +101,14 @@ const DocumentCard = ({ document, isDarkMode }) => {
     if (isRetry) {
       setIsRetrying(true);
     }
-    
+
+    setSelectedDocType(document?.id);
+    setIsDeleting(false);
     setPreviewError(false);
-    
+
     try {
       const response = await dispatch(getsinglefileDownlaod(document.id));
-      
+
       if (response?.payload?.success && response?.payload?.data) {
         if (!showPreviewModal) {
           setShowPreviewModal(true);
@@ -148,7 +151,7 @@ const DocumentCard = ({ document, isDarkMode }) => {
   const handleFileDownload = async () => {
     try {
       const response = await dispatch(getsinglefileDownlaod(document.id));
-      
+
       if (response?.payload?.success) {
         // Here you would typically save the file to device storage
         // For now, just show success message
@@ -189,11 +192,12 @@ const DocumentCard = ({ document, isDarkMode }) => {
   // Handle file deletion
   const handleFileDeleted = async () => {
     setShowDeleteAlert(false);
-    
+    setIsDeleting(true);
+    setSelectedDocType(document?.id);
     try {
       // Assuming you have a deleteFile action
       const response = await dispatch(deleteCustomerFile(document.id));
-      
+
       if (response?.payload?.success) {
         showToast({
           message: 'File deleted successfully',
@@ -201,7 +205,8 @@ const DocumentCard = ({ document, isDarkMode }) => {
           duration: 3000,
           position: 'top'
         });
-         dispatch(getCustomerFiles({id:document.entity_id, file_type:''}));
+        setIsDeleting(false);
+        dispatch(getCustomerFiles({ id: document.entity_id, file_type: '' }));
       } else {
         showToast({
           message: response?.payload?.message || `Can't delete file`,
@@ -312,12 +317,12 @@ const DocumentCard = ({ document, isDarkMode }) => {
             Cannot preview this file
           </Text>
           <Text className={`${isDarkMode ? 'text-gray-500' : 'text-gray-600'} text-sm mt-2 text-center`}>
-            {getsinglefileDownlaoderror ? 
-              'Failed to load the file. Please check your connection and try again.' : 
+            {getsinglefileDownlaoderror ?
+              'Failed to load the file. Please check your connection and try again.' :
               'The file format may not be supported for preview'
             }
           </Text>
-          
+
           <View className="flex-row gap-3 mt-6">
             <TouchableOpacity
               className={`px-6 py-3 rounded-xl ${isDarkMode ? 'bg-blue-600' : 'bg-blue-500'}`}
@@ -335,7 +340,7 @@ const DocumentCard = ({ document, isDarkMode }) => {
                 </Text>
               </View>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               className={`px-6 py-3 rounded-xl ${isDarkMode ? 'bg-gray-600' : 'bg-gray-500'}`}
               onPress={handleFileDownload}
@@ -356,7 +361,7 @@ const DocumentCard = ({ document, isDarkMode }) => {
     // Image preview
     if (isImageFile(fileName)) {
       return (
-        <ScrollView 
+        <ScrollView
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
@@ -365,8 +370,8 @@ const DocumentCard = ({ document, isDarkMode }) => {
         >
           <Image
             source={{ uri: fileUrl }}
-            style={{ 
-              width: screenWidth - 32, 
+            style={{
+              width: screenWidth - 32,
               height: screenHeight - 200,
               borderRadius: 12
             }}
@@ -382,14 +387,14 @@ const DocumentCard = ({ document, isDarkMode }) => {
       return (
         <View style={{ flex: 1, position: 'relative' }}>
           {webViewLoading && (
-            <View 
-              style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                bottom: 0, 
-                justifyContent: 'center', 
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                justifyContent: 'center',
                 alignItems: 'center',
                 backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb',
                 zIndex: 1
@@ -401,7 +406,7 @@ const DocumentCard = ({ document, isDarkMode }) => {
               </Text>
             </View>
           )}
-          
+
           <WebView
             source={{ html: generatePdfHtml(fileUrl) }}
             style={{ flex: 1 }}
@@ -488,7 +493,8 @@ const DocumentCard = ({ document, isDarkMode }) => {
           <View className="mb-3">
             <View className={`inline-flex px-2 py-1 rounded-md ${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'}`}>
               <Text className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-xs font-medium`}>
-                {document.file_type.replace('_', ' ')}
+                {/* {document.file_type.replace('_', ' ')} */}
+                {document.original_name}
               </Text>
             </View>
           </View>
@@ -496,21 +502,20 @@ const DocumentCard = ({ document, isDarkMode }) => {
           {/* Action Buttons */}
           <View className={`flex-row gap-2 mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-100'}`}>
             <TouchableOpacity
-              className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl ${
-                getsinglefileDownlaodloading 
-                  ? (isDarkMode ? 'bg-gray-800' : 'bg-gray-200') 
-                  : (isDarkMode ? 'bg-gray-600' : 'bg-gray-50')
-              }`}
+              className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl ${getsinglefileDownlaodloading && document?.id === selectedDocType
+                ? (isDarkMode ? 'bg-gray-800' : 'bg-gray-200')
+                : (isDarkMode ? 'bg-gray-600' : 'bg-gray-50')
+                }`}
               onPress={() => handleFilePreview(false)}
               disabled={getsinglefileDownlaodloading}
             >
-              {getsinglefileDownlaodloading ? (
+              {getsinglefileDownlaodloading && document?.id === selectedDocType && !isdeleting ? (
                 <ActivityIndicator size="small" color={isDarkMode ? '#9ca3af' : '#6b7280'} />
               ) : (
                 <Icon name="eye-outline" size={18} color={isDarkMode ? '#9ca3af' : '#6b7280'} />
               )}
               <Text className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} font-medium ml-2 text-sm`}>
-                {getsinglefileDownlaodloading ? 'Loading...' : 'Preview'}
+                Preview
               </Text>
             </TouchableOpacity>
 
@@ -530,7 +535,7 @@ const DocumentCard = ({ document, isDarkMode }) => {
               onPress={handleDelete}
               disabled={getsinglefileDownlaodloading}
             >
-              {getsinglefileDownlaodloading ? (
+              {getsinglefileDownlaodloading && document?.id === selectedDocType && isdeleting ? (
                 <ActivityIndicator size="small" color={isDarkMode ? '#f87171' : '#dc2626'} />
               ) : (
                 <Icon name="trash-outline" size={18} color={isDarkMode ? '#f87171' : '#dc2626'} />

@@ -101,7 +101,11 @@ const HomeStackScreen = () => {
 
 const CustomersStackScreen = () => (
   <CustomersStack.Navigator screenOptions={{ headerShown: false }}>
-    <CustomersStack.Screen name="CustomersMain" component={CustomersScreen} />
+    <CustomersStack.Screen name="CustomersMain" component={CustomersScreen}
+      options={{
+        lazy: true,
+      }}
+    />
     <CustomersStack.Screen name="Createcustomer" component={Createcustomer}
       options={{
         tabBarStyle: { display: 'none' }
@@ -153,20 +157,24 @@ const CustomersStackScreen = () => (
 // );
 const LoansStackScreen = () => (
   <LoansStack.Navigator screenOptions={{ headerShown: false }}>
-    <LoansStack.Screen name="LoansMain" component={LoansScreen} />
+    <LoansStack.Screen name="LoansMain" component={LoansScreen}
+      options={{
+        lazy: true,
+      }}
+    />
     <LoansStack.Screen name="Loandetails" component={LoanDetails}
       options={{
-        tabBarStyle: { display: 'none' }, 
+        tabBarStyle: { display: 'none' },
         headerStyle: { backgroundColor: '#1a9c94' },
         headerTintColor: '#fff',
-    }}
+      }}
     />
     <LoansStack.Screen name='addloanformultiplecustomer' component={Moreloanadd}
       options={{
         tabBarStyle: { display: 'none' },
       }}
     />
-     <LoansStack.Screen name="Paymentdetailsfromloan" component={Loanpaymentgetspay}
+    <LoansStack.Screen name="Paymentdetailsfromloan" component={Loanpaymentgetspay}
       options={{
         tabBarStyle: { display: 'none' },
         headerShown: true,
@@ -180,7 +188,11 @@ const LoansStackScreen = () => (
 )
 const PaymentsStackScreen = () => (
   <PaymentsStack.Navigator screenOptions={{ headerShown: false }}>
-    <PaymentsStack.Screen name="PaymentsMain" component={PaymentsScreen} />
+    <PaymentsStack.Screen name="PaymentsMain" component={PaymentsScreen}
+      options={{
+        lazy: true,
+      }}
+    />
     <ProfileStack.Screen name="Paymentdetails" component={PaymentDetails}
       options={{
         tabBarStyle: { display: 'none' },
@@ -264,14 +276,19 @@ const MainApp = () => {
         tabBarInactiveTintColor: isDarkMode ? '#9ca3af' : '#6b7280',
         headerShown: false,
         tabBarStyle: {
-          padding:'10px',
+          padding: '10px',
           backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
           borderTopColor: isDarkMode ? '#374151' : '#e5e7eb',
         },
       })}
     >
       <Tab.Screen name="Home" component={HomeStackScreen} />
-      <Tab.Screen name="Customers" component={CustomersStackScreen} />
+      <Tab.Screen name="Customers" component={CustomersStackScreen}
+        options={{
+          lazy: true,
+          unmountOnBlur: false,
+        }}
+      />
       <Tab.Screen name="Loans" component={LoansStackScreen} />
       <Tab.Screen name="Payments" component={PaymentsStackScreen} />
       <Tab.Screen name="Profile" component={ProfileStackScreen} />

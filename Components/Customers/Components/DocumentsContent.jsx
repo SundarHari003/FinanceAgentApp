@@ -432,7 +432,7 @@ const DocumentsContent = ({ customer_id }) => {
         ))}
       </View>
 
-      <View className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} rounded-3xl p-6`}>
+      <View className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'} rounded-3xl p-6 mb-5`}>
         <View className="flex-row justify-between items-center mb-6">
           <Text className={`text-xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>Documents</Text>
           {availableDocumentTypes.length > 0 && (

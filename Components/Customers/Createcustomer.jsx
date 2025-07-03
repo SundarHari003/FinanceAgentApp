@@ -386,6 +386,7 @@ const CreateCustomerScreen = () => {
       };
 
       dispatch(createCustomer(payload)).then((res) => {
+        console.log(res,"sdffs");
         if (res.payload.success) {
           showToast({
             message: 'Customer created successfully!',
@@ -396,7 +397,7 @@ const CreateCustomerScreen = () => {
           navigation.goBack();
         } else {
           showToast({
-            message: res?.payload?.error || res?.error?.message || "Failed to create customer",
+            message: res?.payload|| "Failed to create customer",
             type: 'error',
             duration: 3000,
             position: 'top'

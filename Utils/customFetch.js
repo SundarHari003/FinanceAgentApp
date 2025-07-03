@@ -7,6 +7,8 @@ const getRefreshToken = () => store.getState()?.auth?.refershToken || '';
 
 const refreshAccessToken = async () => {
     const refreshToken = getRefreshToken();
+console.log(refreshToken, "refreshToken_check");
+console.log(getToken(), "accessToken_check");
 
     const res = await fetch(`${API_URL}auth/refresh`, {
         method: 'POST',
@@ -15,7 +17,9 @@ const refreshAccessToken = async () => {
             "refresh_token": refreshToken
         }),
     });
+    console.log(res.json(), "res");
     
+
     if (!res.ok) {
         // If refresh token failed
         throw new Error('Refresh token expired');
@@ -51,10 +55,12 @@ const request = async (method, endpoint, body = null, customHeaders = {}, retry 
     });
     console.log(res, "res");
     const data = await res.json();
-    console.log(res, "res",data);
+    console.log(res, "res", data);
 
     // Check response before parsing
-    if (data.status_code === 401 && !retry) {
+    if (res.status === 401 && !retry) {
+        console.log('refresh token');
+        
         try {
             token = await refreshAccessToken();
             // Retry request with new access token
@@ -67,7 +73,7 @@ const request = async (method, endpoint, body = null, customHeaders = {}, retry 
     }
 
     if (!res.ok) {
-        throw new Error(data?.message || 'API request failed');
+        throw new Error(data?.error ? data?.error : data?.message || 'API request failed');
     }
 
     return data;

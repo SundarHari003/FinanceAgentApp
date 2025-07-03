@@ -16,7 +16,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getallpayment, getsinglepaymentreducer } from '../../redux/Slices/paymentslice';
 import SkeletonBox from '../Common/SkeletonBox';
 import { useToast } from '../../Context/ToastContext';
-
 const PaymentItemSkeleton = () => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
 
@@ -164,6 +163,9 @@ const PaymentItem = memo(({ index, paymenthistoryDetails }) => {
               </Text>
             </View>
           </View>
+          <Text className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+            #{paymenthistoryDetails?.installment_number} installement
+          </Text>
         </View>
         <View className="p-4">
           <View className="flex-row justify-between items-center mb-3">
@@ -258,7 +260,8 @@ const PaymentsScreen = () => {
   const [isSelectingEndDate, setIsSelectingEndDate] = useState(false);
   const flatListRef = useRef(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
-
+  const sortDropdownHeight = useSharedValue(0);
+  const sortDropdownOpacity = useSharedValue(0);
   const scrollIndicatorOpacity = useSharedValue(0);
   const scrollIndicatorScale = useSharedValue(0.8);
 
@@ -296,6 +299,10 @@ const PaymentsScreen = () => {
       }
       return () => {
         scrollToTop();
+        setShowScrollToTop(false)
+        setShowSortDropdown(false);
+        sortDropdownHeight.value = withSpring(0);
+        sortDropdownOpacity.value = withSpring(0);
         console.log('cleanup if needed');
       };
     }, [])
@@ -326,7 +333,7 @@ const PaymentsScreen = () => {
 
   const getBaseQueryParams = () => ({
     "status": sortOption === 'All' ? '' : sortOption.toUpperCase(),
-    "loanid": searchQuery,
+    "loanid": searchQuery.toLocaleUpperCase(),
     "dueDatestart": startDate ? moment(startDate).format('YYYY-MM-DD') : '',
     "dueDateend": endDate ? moment(endDate).format('YYYY-MM-DD') : '',
     "limit": 10
@@ -367,6 +374,12 @@ const PaymentsScreen = () => {
     fetchPayments(1);
   }, [sortOption, searchQuery]);
 
+  useEffect(() => {
+    if (!showCalendarModal && !startDate && !endDate) {
+      setPage(1);
+      fetchPayments(1);
+    }
+  }, [showCalendarModal, startDate, endDate])
   const handleRefresh = () => {
     setRefreshing(true);
     setPage(1);
@@ -414,9 +427,9 @@ const PaymentsScreen = () => {
   };
 
   const clearDateFilter = () => {
-    setStartDate(null);
-    setEndDate(null);
-    setDisplayDateRange('');
+    // setStartDate(null);
+    // setEndDate(null);
+    // setDisplayDateRange('');
     setShowCalendarModal(false);
   };
 
@@ -455,8 +468,7 @@ const PaymentsScreen = () => {
     </View>
   );
 
-  const sortDropdownHeight = useSharedValue(0);
-  const sortDropdownOpacity = useSharedValue(0);
+
 
   const sortDropdownStyle = useAnimatedStyle(() => ({
     height: sortDropdownHeight.value,
@@ -512,7 +524,7 @@ const PaymentsScreen = () => {
 
   return (
     <View className={`flex-1 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
-        {/* {showSortDropdown && (
+      {/* {showSortDropdown && (
           <Pressable
             className={`absolute inset-0 ${isDarkMode ? 'bg-black/60' : 'bg-black/20'} z-[990]`}
             onPress={handleBackdropPress}
@@ -535,6 +547,7 @@ const PaymentsScreen = () => {
       <View className="px-4 mt-4 flex-1">
         <View className="flex-row justify-between mb-3 relative">
           <TouchableOpacity
+            disabled={isLoadingPayment}
             onPress={() => setShowCalendarModal(true)}
             className={`flex-1 mr-2 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-3 rounded-xl flex-row items-center justify-between shadow-sm`}
           >
@@ -676,6 +689,7 @@ const PaymentsScreen = () => {
         transparent={true}
         animationType="fade"
         onRequestClose={() => setShowCalendarModal(false)}
+        statusBarTranslucent={true}
       >
         <TouchableOpacity
           activeOpacity={1}
@@ -711,6 +725,10 @@ const PaymentsScreen = () => {
                 onPress={() => {
                   setStartDate(null);
                   setEndDate(null);
+                  setDisplayDateRange('');
+                  setShowCalendarModal(false);
+                  setPage(1);
+                  fetchPayments(1);
                 }}
               >
                 <Text className="text-primary-100 font-medium text-center">Clear Selected Date</Text>
@@ -720,7 +738,7 @@ const PaymentsScreen = () => {
                   className="p-3 bg-gray-500 rounded-lg flex-1 mr-2"
                   onPress={clearDateFilter}
                 >
-                  <Text className="text-white font-medium text-center">Clear Filter</Text>
+                  <Text className="text-white font-medium text-center">Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="p-3 bg-primary-100 rounded-lg flex-1 ml-2"

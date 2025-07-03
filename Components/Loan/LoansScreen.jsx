@@ -81,7 +81,7 @@ const LoanSkeletonItem = ({ isDarkMode }) => {
         </View>
 
         {/* Bottom Row Skeleton */}
-        <View className={`flex-row justify-between items-center ${isDarkMode?"bg-gray-700":"bg-gray-50"} p-4 rounded-lg`}>
+        <View className={`flex-row justify-between items-center ${isDarkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
           <View className="flex-row items-center">
             <SkeletonBox width={16} height={16} style={{ borderRadius: 8 }} />
             <SkeletonBox width={100} height={12} style={{ marginLeft: 8 }} />
@@ -148,6 +148,8 @@ const LoansScreen = () => {
     useCallback(() => {
       return () => {
         // This runs when the screen loses focus
+        scrollToTop();
+        setShowScrollToTop(false);
         if (showStatusDropdown) {
           statusDropdownHeight.value = withTiming(0, { duration: 200 });
           statusDropdownOpacity.value = withTiming(0, { duration: 200 }, () => {
@@ -218,23 +220,29 @@ const LoansScreen = () => {
   }, [page, statusFilter, searchQuery, frequencyFilter]);
 
   // Fetch data
-  const fetchLoans = useCallback(() => {
+  const fetchLoans = useCallback((pagecount) => {
     const queryParams = buildQueryParams();
+    if (pagecount) queryParams.page = pagecount;
     dispatch(gellloandataapi(queryParams));
   }, [dispatch, buildQueryParams]);
 
-  // Initial load and when filters change
   useEffect(() => {
     fetchLoans();
-  }, [fetchLoans]);
-
+  }, [searchQuery, statusFilter, frequencyFilter]);
   // Refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setPage(1);
-    fetchLoans();
+    const params = {
+      page: 1,
+      limit: 20,
+      status: statusFilter ? statusFilter : '',
+      customer_id: searchQuery ? searchQuery : '',
+      paymentfrequency: frequencyFilter ? frequencyFilter : ''
+    };
+    dispatch(gellloandataapi(params));
     setTimeout(() => setRefreshing(false), 1000);
-  }, [fetchLoans]);
+  }, []);
 
   // Animation styles
   const statusDropdownStyle = useAnimatedStyle(() => ({
@@ -251,7 +259,7 @@ const LoansScreen = () => {
 
   useEffect(() => {
     if (loanerror && Allloanhistory?.length > 0) {
-      showToast({ message: "Failed to load loans", type: 'error', duration: 3000, position: 'top' });
+      showToast({ message: "Failed to load loans", type: 'error', duration: 1000, position: 'top' });
       if (statusFilter || searchQuery || frequencyFilter) {
         setFrequencyFilter('');
         setSearchQuery('');
@@ -274,11 +282,11 @@ const LoansScreen = () => {
         setShowFrequencyDropdown(false);
       }
       setShowStatusDropdown(true);
-      statusDropdownHeight.value = withSpring(180,{
+      statusDropdownHeight.value = withSpring(180, {
         damping: 15,
         stiffness: 100
       });
-      statusDropdownOpacity.value = withSpring(1,{
+      statusDropdownOpacity.value = withSpring(1, {
         damping: 15,
         stiffness: 100
       });
@@ -299,11 +307,11 @@ const LoansScreen = () => {
         setShowStatusDropdown(false);
       }
       setShowFrequencyDropdown(true);
-      frequencyDropdownHeight.value = withSpring(225,{
+      frequencyDropdownHeight.value = withSpring(225, {
         damping: 15,
         stiffness: 100
       });
-      frequencyDropdownOpacity.value = withSpring(1,{
+      frequencyDropdownOpacity.value = withSpring(1, {
         damping: 15,
         stiffness: 100
       });
@@ -315,8 +323,43 @@ const LoansScreen = () => {
     setSearchQuery('');
     setStatusFilter('');
     setPage(1);
-    fetchLoans();
+    const params = {
+      page: 1,
+      limit: 20,
+      status: '',
+      customer_id: '',
+      paymentfrequency: ''
+    };
+    dispatch(gellloandataapi(params));
   }
+  const handleLoadMore = () => {
+    if (hasMore && Allloanhistory.length > 0) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchLoans(nextPage);
+    }
+  };
+
+  const renderFooter = () => {
+    if (!hasMore) return null;
+    if (loanerror && Allloanhistory?.length > 0) {
+      return (
+        <View className="py-6 -mt-2 items-center">
+          <Text className={`mt-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Error load loans, Try Again...
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View className="py-6 -mt-2 items-center">
+        <ActivityIndicator size="small" color="#2ec4b6" />
+        <Text className={`mt-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          Loading more loans...
+        </Text>
+      </View>
+    );
+  };
 
   const closeAllDropdowns = () => {
     if (showStatusDropdown) toggleStatusDropdown();
@@ -471,27 +514,23 @@ const LoansScreen = () => {
             <FlatList
               data={[1, 2, 3, 4, 5]}
               keyExtractor={(item) => item.toString()}
-              renderItem={() => <LoanSkeletonItem isDarkMode={isDarkMode}/>}
+              renderItem={() => <LoanSkeletonItem isDarkMode={isDarkMode} />}
               contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
               showsVerticalScrollIndicator={false}
             />
           ) : loanerror && Allloanhistory?.length == 0 ? (
             <ErrorComponent isDarkMode={isDarkMode} onRetry={handleRetry} />
           ) : Allloanhistory?.length == 0 ? (
-            <View className="flex-1 py-8 items-center">
-              <Icon
-                name="account-balance"
-                size={40}
-                color={isDarkMode ? '#6b7280' : '#9ca3af'}
-              />
-              <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mt-2 text-center`}>
-                No loans found
+            <View className="flex-1 items-center justify-center py-16">
+              <View className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} w-20 h-20 rounded-full items-center justify-center mb-4`}>
+                <Icon name="account-balance" size={50} color={isDarkMode ? '#9ca3af' : '#6b7280'} />
+              </View>
+              <Text className={`text-lg font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                No Loans Founded
               </Text>
-              {searchQuery && (
-                <Text className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'} text-sm mt-1`}>
-                  Try adjusting your search criteria
-                </Text>
-              )}
+              <Text className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-center px-8`}>
+                Try adjusting your search or filter criteria to find the loans you're looking for.
+              </Text>
             </View>
           )
             : (
@@ -528,22 +567,19 @@ const LoansScreen = () => {
                       onRefresh={onRefresh}
                       colors={['#2ec4b6']}
                       tintColor="#2ec4b6"
+                      titleColor={isDarkMode ? '#9ca3af' : '#4b5563'}
+                      progressBackgroundColor={isDarkMode ? '#4b5563' : '#fff'}
                     />
                   }
-                  onEndReached={() => {
-                    if (!isLoadingLoan && Allloanhistory?.length >= 20) {
-                      setPage(prev => prev + 1);
-                    }
-                  }}
-                  onEndReachedThreshold={0.5}
-                  ListFooterComponent={
-                    isLoadingLoan && page > 1 ? (
-                      <View className="py-4">
-                        <ActivityIndicator size="small" color="#2ec4b6" />
-                      </View>
-                    ) : null
-                  }
+                  ListFooterComponent={renderFooter}
+                  onEndReached={handleLoadMore}
+                  onEndReachedThreshold={0.1}
+                  scrollEventThrottle={16}
                   showsVerticalScrollIndicator={false}
+                  removeClippedSubviews={true}
+                  maxToRenderPerBatch={10}
+                  updateCellsBatchingPeriod={50}
+                  initialNumToRender={15}
                 />
               </View>
             )}

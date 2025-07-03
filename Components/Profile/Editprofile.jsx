@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, Image, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, Image, ScrollView, StyleSheet, Animated, Easing, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Icons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -11,9 +11,10 @@ import API_URL from '../../redux/BaseUrl/baseurl';
 import profiledummy from '../../assests/agent-avatar.png';
 import { getAgentuserData, updateAgentuserData } from '../../redux/AuthSlice/authslice';
 import ImagePicker from 'react-native-image-crop-picker';
+import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 const Editprofile = () => {
   const navigation = useNavigation();
-  const { user } = useSelector((state) => state.auth);
+  const { user, isLoading } = useSelector((state) => state.auth);
   useHideTabBar(['EditProfile']);
   const { showToast } = useToast();
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
@@ -39,6 +40,14 @@ const Editprofile = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeSection, setActiveSection] = useState('personal');
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+
+  const buttonWidth = useSharedValue('48%');
+
+  // Animated style for Save Changes button
+  const saveButtonAnimatedStyle = useAnimatedStyle(() => ({
+    width: buttonWidth.value,
+  }));
 
   // Animation effects
   useEffect(() => {
@@ -104,6 +113,7 @@ const Editprofile = () => {
 
   const handleSave = () => {
     if (validateForm()) {
+      buttonWidth.value = withTiming('100%', { duration: 300 });
       setShowConfirmation(true);
     }
   };
@@ -122,6 +132,7 @@ const Editprofile = () => {
     dispatch(updateAgentuserData({ id: userData?.id, payloads: payload })).then((response) => {
       if (response?.payload?.success && response?.payload?.status_code == 200) {
         dispatch(getAgentuserData(userData?.id));
+        buttonWidth.value = withTiming('48%', { duration: 300 });
         showToast({
           message: 'Profile updated successfully!',
           type: 'success',
@@ -651,6 +662,7 @@ const Editprofile = () => {
       visible={showConfirmation}
       transparent
       animationType="fade"
+      statusBarTranslucent={true}
       onRequestClose={() => setShowConfirmation(false)}
     >
       <View className="flex-1 bg-black/50 justify-center items-center">
@@ -676,7 +688,7 @@ const Editprofile = () => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={confirmSave}
-              className="flex-1 bg-teal-500 py-3 rounded-xl"
+              className="flex-1 bg-teal-600 py-3 rounded-xl"
             >
               <Text className="text-white text-center font-medium">Confirm</Text>
             </TouchableOpacity>
@@ -699,24 +711,35 @@ const Editprofile = () => {
         {activeSection === 'documents' && <DocumentsSection />}
 
         {isEditMode && (
-          <View className="flex-row gap-4 my-6">
-            <TouchableOpacity
+          <View className="flex-row justify-center gap-4 my-6">
+            {!isLoading && (<TouchableOpacity
               onPress={resetForm}
-              className={`flex-1 py-3 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}
+              className={`flex-1 py-3 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}
             >
               <Text className={`text-center font-medium ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 Discard
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleSave}
-              disabled={!hasChanges()}
-              className={`flex-1 py-3 rounded-xl ${hasChanges() ? 'bg-teal-500' : 'bg-gray-400'}`}
+            </TouchableOpacity>)}
+
+            <Animated.View style={[saveButtonAnimatedStyle, { alignSelf: 'stretch' }]}
+              className={` flex-1`}
             >
-              <Text className="text-white text-center font-medium">
-                Save Changes
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={!hasChanges()}
+                className={`flex-1 py-3 rounded-xl ${hasChanges() ? 'bg-teal-600' : 'bg-gray-400'}`}
+              >
+                {
+                  isLoading ?
+                    (<ActivityIndicator color={isDarkMode ? '#fff' : '#14b8a6'} />) :
+                    (
+                      <Text className="text-white text-center font-medium">
+                        Save Changes
+                      </Text>
+                    )
+                }
+              </TouchableOpacity>
+            </Animated.View>
           </View>
         )}
       </ScrollView>

@@ -221,7 +221,7 @@ const CustomersScreen = () => {
   const statusDropdownOpacity = useSharedValue(0);
   const sortDropdownOpacity = useSharedValue(0);
 
- 
+
 
   const fetchCustomer = async (pageNum = 1, isRefresh = false, isLoadMore = false) => {
     try {
@@ -445,7 +445,7 @@ const CustomersScreen = () => {
       }
       return () => {
         scrollToTop();
-        // Instantly close both dropdowns on screen blur
+        setShowScrollToTop(false)
         statusDropdownHeight.value = 0;
         statusDropdownOpacity.value = 0;
         sortDropdownHeight.value = 0;
@@ -608,6 +608,10 @@ const CustomersScreen = () => {
             renderItem={() => <CustomerCardSkeleton />}
             contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={7}
+            removeClippedSubviews={true}
           />
         ) : customerError ? (
           <ErrorState onRetry={handleRetry} />
@@ -616,7 +620,7 @@ const CustomersScreen = () => {
         ) : (
           <View className='relative'>
             {/* Back to Top Button - Fixed positioning */}
-           {showScrollToTop && <Animated.View
+            {showScrollToTop && <Animated.View
               style={[scrollIndicatorStyle]}
               className='absolute z-50 w-full flex-row justify-center top-2'
               pointerEvents={showScrollToTop ? 'auto' : 'none'}
@@ -665,11 +669,10 @@ const CustomersScreen = () => {
                 minIndexForVisible: 0,
                 autoscrollToTopThreshold: 10
               }} // Helps maintain position during data updates
-              removeClippedSubviews={true} // Performance optimization
-              maxToRenderPerBatch={10} // Render optimization
-              updateCellsBatchingPeriod={50} // Batch updates
-              initialNumToRender={15} // Initial render count
-              windowSize={10} // Memory optimization
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={7}
+              removeClippedSubviews={true} // Memory optimization
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}

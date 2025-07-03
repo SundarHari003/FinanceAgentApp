@@ -9,8 +9,7 @@ import {
   Animated,
   Dimensions,
   PanResponder,
-  FlatList,
-  StatusBar
+  FlatList
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -20,6 +19,101 @@ import { getsingleloanapi, singleLoanRepaymentsAPI } from '../../../redux/Slices
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;
 
+const RepaymentItem = ({ item, isDarkMode, formatCurrency, formatDate, getStatusColor }) => {
+
+  return (
+    <View
+      className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-2xl p-4 mb-3`}
+    >
+      <View className="flex-row bg justify-between items-center mb-3">
+        <View className="flex-row items-center">
+          <View className={`${isDarkMode ? 'bg-teal-900' : 'bg-teal-100'} p-2 rounded-lg mr-3`}>
+            <Icon name="receipt-outline" size={20} color={isDarkMode ? '#2dd4bf' : '#2ec4b6'} />
+          </View>
+          <View>
+            <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold`}>
+              Installment #{item.installment_number}
+            </Text>
+            <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-xs`}>
+              ID: {item.id}
+            </Text>
+          </View>
+        </View>
+        <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status, isDarkMode)}`}>
+          <Text className="text-xs font-medium text-white">
+            {item.status}
+          </Text>
+        </View>
+      </View>
+
+      {/* Amount Details Grid */}
+      <View className="flex-row flex-wrap -mx-1 mb-3">
+        <View className="w-1/2 px-1 mb-2">
+          <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>Principal</Text>
+          <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold`}>
+            {formatCurrency(item.principal_amount)}
+          </Text>
+        </View>
+        <View className="w-1/2 px-1 mb-2">
+          <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>Interest</Text>
+          <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold`}>
+            {formatCurrency(item.interest_amount)}
+          </Text>
+        </View>
+        <View className="w-1/2 px-1">
+          <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>Total Amount</Text>
+          <Text className={`${isDarkMode ? 'text-teal-400' : 'text-teal-600'} font-bold`}>
+            {formatCurrency(item.total_amount)}
+          </Text>
+        </View>
+        <View className="w-1/2 px-1">
+          <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>Due Date</Text>
+          <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold`}>
+            {formatDate(item.due_date)}
+          </Text>
+        </View>
+        {/* Show remaining amount if PARTIAL */}
+        {item.status === 'PARTIAL' && (
+          <View className="w-full px-1 mt-2">
+            <Text className={`${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'} text-xs font-semibold`}>
+              Remain: {formatCurrency((item.total_amount || 0) - (item.amount_paid || 0))}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Payment Date */}
+      <View className={`${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'} p-3 rounded-lg`}>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <Icon
+              name={item.payment_date ? "checkmark-circle" : "time-outline"}
+              size={16}
+              color={item.payment_date ? (isDarkMode ? '#22c55e' : '#16a34a') : (isDarkMode ? '#f59e0b' : '#d97706')}
+            />
+            <Text className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-xs ml-2`}>
+              Payment Date
+            </Text>
+          </View>
+          <Text className={`${item.payment_date
+            ? (isDarkMode ? 'text-green-400' : 'text-green-600')
+            : (isDarkMode ? 'text-orange-400' : 'text-orange-600')
+            } font-medium text-xs`}>
+            {formatDate(item.payment_date)}
+          </Text>
+        </View>
+
+        {item.notes && (
+          <View className={`mt-2 pt-2 ${isDarkMode ? 'border-gray-500' : 'border-gray-300'} border-t`}>
+            <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>
+              Note: {item.notes}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+};
 const LoanContent = () => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const navigation = useNavigation();
@@ -191,100 +285,6 @@ const LoanContent = () => {
   }
 
   // Fixed Repayment Item Component for Bottom Sheet
-  const RepaymentItem = ({ item }) => {
-    return (
-      <View
-        className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-2xl p-4 mb-3`}
-      >
-        <View className="flex-row bg justify-between items-center mb-3">
-          <View className="flex-row items-center">
-            <View className={`${isDarkMode ? 'bg-teal-900' : 'bg-teal-100'} p-2 rounded-lg mr-3`}>
-              <Icon name="receipt-outline" size={20} color={isDarkMode ? '#2dd4bf' : '#2ec4b6'} />
-            </View>
-            <View>
-              <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold`}>
-                Installment #{item.installment_number}
-              </Text>
-              <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-xs`}>
-                ID: {item.id}
-              </Text>
-            </View>
-          </View>
-          <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status, isDarkMode)}`}>
-            <Text className="text-xs font-medium text-white">
-              {item.status}
-            </Text>
-          </View>
-        </View>
-
-        {/* Amount Details Grid */}
-        <View className="flex-row flex-wrap -mx-1 mb-3">
-          <View className="w-1/2 px-1 mb-2">
-            <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>Principal</Text>
-            <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold`}>
-              {formatCurrency(item.principal_amount)}
-            </Text>
-          </View>
-          <View className="w-1/2 px-1 mb-2">
-            <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>Interest</Text>
-            <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold`}>
-              {formatCurrency(item.interest_amount)}
-            </Text>
-          </View>
-          <View className="w-1/2 px-1">
-            <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>Total Amount</Text>
-            <Text className={`${isDarkMode ? 'text-teal-400' : 'text-teal-600'} font-bold`}>
-              {formatCurrency(item.total_amount)}
-            </Text>
-          </View>
-          <View className="w-1/2 px-1">
-            <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>Due Date</Text>
-            <Text className={`${isDarkMode ? 'text-gray-100' : 'text-gray-800'} font-semibold`}>
-              {formatDate(item.due_date)}
-            </Text>
-          </View>
-          {/* Show remaining amount if PARTIAL */}
-          {item.status === 'PARTIAL' && (
-            <View className="w-full px-1 mt-2">
-              <Text className={`${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'} text-xs font-semibold`}>
-                Remain: {formatCurrency((item.total_amount || 0) - (item.amount_paid || 0))}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Payment Date */}
-        <View className={`${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'} p-3 rounded-lg`}>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center">
-              <Icon
-                name={item.payment_date ? "checkmark-circle" : "time-outline"}
-                size={16}
-                color={item.payment_date ? (isDarkMode ? '#22c55e' : '#16a34a') : (isDarkMode ? '#f59e0b' : '#d97706')}
-              />
-              <Text className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-xs ml-2`}>
-                Payment Date
-              </Text>
-            </View>
-            <Text className={`${item.payment_date
-              ? (isDarkMode ? 'text-green-400' : 'text-green-600')
-              : (isDarkMode ? 'text-orange-400' : 'text-orange-600')
-              } font-medium text-xs`}>
-              {formatDate(item.payment_date)}
-            </Text>
-          </View>
-
-          {item.notes && (
-            <View className={`mt-2 pt-2 ${isDarkMode ? 'border-gray-500' : 'border-gray-300'} border-t`}>
-              <Text className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-xs`}>
-                Note: {item.notes}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
 
   // Fixed Bottom Sheet Component
   const BottomSheet = () => {
@@ -300,10 +300,8 @@ const LoanContent = () => {
         visible={bottomSheetVisible}
         transparent
         animationType="none"
-        statusBarTranslucent={true}
         onRequestClose={closeBottomSheet}
       >
-        <StatusBar hidden={true} />
         <View style={{ flex: 1 }}>
           <Animated.View
             style={{
@@ -363,7 +361,13 @@ const LoanContent = () => {
               <FlatList
                 data={currentData}
                 keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-                renderItem={({ item }) => <RepaymentItem item={item} />}
+                renderItem={({ item }) => <RepaymentItem
+                  item={item}
+                  isDarkMode={isDarkMode}
+                  formatCurrency={formatCurrency}
+                  formatDate={formatDate}
+                  getStatusColor={getStatusColor}
+                />}
                 contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
                 showsVerticalScrollIndicator
                 scrollEnabled
